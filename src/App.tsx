@@ -28,6 +28,8 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Whitepaper from "./pages/Whitepaper";
 import AdminDashboard from "./pages/AdminDashboard";
+import TermsAndGuidelines from "./pages/TermsAndGuidelines";
+import PrivacyPolicy from "./pages/Privacy";
 
 // queryClient digunakan untuk management data, walaupun ini hanya mockup.
 // Variabel ini berfungsi untuk menyimpan cache dari web,
@@ -70,7 +72,9 @@ const App = () => (
           <Route path="/faq" element={<FAQ />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/whitepaper" element={<Whitepaper />} />
+          <Route path="/terms" element={<TermsAndGuidelines />} />
           <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
