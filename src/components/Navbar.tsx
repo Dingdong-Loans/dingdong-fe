@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Wallet, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Navbar = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -16,7 +17,6 @@ const Navbar = () => {
   const { toast } = useToast();
 
   const handleConnectWallet = () => {
-    // Simulasi koneksi wallet
     const mockAddress = "0x1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t";
     setWalletAddress(mockAddress);
     setIsConnected(true);
@@ -45,59 +45,49 @@ const Navbar = () => {
     )}`;
   };
 
+  const navLinks = [
+    { name: "Dashboard", path: "/dashboard" },
+    { name: "Beranda", path: "/" },
+    { name: "FAQ", path: "/faq" },
+    { name: "Tentang Kami", path: "/about" },
+    { name: "Whitepaper", path: "/whitepaper" },
+  ];
+
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">DD</span>
-          </div>
-          <span className="font-bold text-xl text-foreground">
-            Dingdong Loans
-          </span>
+    <header className="bg-white">
+      <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="text-2xl font-bold text-foreground">
+          Dingdong Loans
         </Link>
 
-        <div className="hidden md:flex items-center space-x-6">
-          <Link
-            to="/"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Beranda
-          </Link>
-          <Link
-            to="/dashboard"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/faq"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            FAQ
-          </Link>
-          <Link
-            to="/about"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Tentang Kami
-          </Link>
-          <Link
-            to="/whitepaper"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Whitepaper
-          </Link>
+        {/* Navigation Links */}
+        <div className="hidden md:flex items-center space-x-2 bg-white p-1 rounded-md">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.name}
+              to={link.path}
+              className={({ isActive }) =>
+                cn(
+                  "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-white" // Warna teks putih untuk link aktif
+                    : "text-muted-foreground hover:text-foreground"
+                )
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
         </div>
 
+        {/* Wallet Button */}
         <div className="flex items-center space-x-3">
           {!isConnected ? (
             <Button
-              className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
-              size="sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               onClick={handleConnectWallet}
             >
-              <Wallet className="w-4 h-4 mr-2" />
               Connect Wallet
             </Button>
           ) : (
@@ -119,8 +109,8 @@ const Navbar = () => {
             </DropdownMenu>
           )}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 
