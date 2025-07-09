@@ -26,7 +26,6 @@ const Dashboard = () => {
   const [userName] = useState("Andro");
   const { toast } = useToast();
 
-  const [slidLoanId, setSlidLoanId] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
 
@@ -85,11 +84,6 @@ const Dashboard = () => {
   const healthFactor = 51.2;
   const healthFactorData = [{ name: 'Health Factor', value: healthFactor, fill: 'hsl(var(--primary))' }];
 
-  const handleLoanClick = (loan: any) => {
-    if (loan.status !== 'active') return;
-    setSlidLoanId(prevId => (prevId === loan.id ? null : loan.id));
-  };
-
   const handlePaymentClick = (e: React.MouseEvent, loan: any) => {
     e.stopPropagation();
     setSelectedLoan(loan);
@@ -102,7 +96,6 @@ const Dashboard = () => {
       description: `Pembayaran untuk ${selectedLoan?.id} sedang diproses.`,
     });
     setIsPaymentDialogOpen(false);
-    setSlidLoanId(null);
   }
 
   return (
@@ -144,8 +137,7 @@ const Dashboard = () => {
                     {activeLoans.map((loan) => (
                       <Card
                         key={loan.id}
-                        onClick={() => handleLoanClick(loan)}
-                        className={`transition-all duration-300 rounded-lg overflow-hidden ${loan.status === 'active' ? 'cursor-pointer bg-white' : 'cursor-pointer bg-white'}`}
+                        className={`group transition-all duration-300 rounded-lg overflow-hidden ${loan.status === 'active' ? 'cursor-pointer bg-white hover:bg-gray-100' : 'bg-white'}`}
                       >
                         <CardContent className="p-0 flex justify-between items-stretch">
                           {/* Main Content */}
@@ -154,8 +146,8 @@ const Dashboard = () => {
                               <div className={`w-12 h-12 rounded-md flex-shrink-0 ${loan.status === 'inactive' ? 'bg-[#48524A]' : 'bg-gray-200'}`} />
                               <div className="min-w-0">
                                 <p className="font-bold truncate">{loan.id}</p>
-                                <p className={`text-xs truncate ${loan.status === 'inactive' ? 'text-gray-300' : 'text-muted-foreground'}`}>Dibuat: {loan.date}</p>
-                                <p className={`text-xs truncate ${loan.status === 'inactive' ? 'text-gray-300' : 'text-muted-foreground'}`}>{loan.collateral} &middot; Tenor: {loan.tenor}</p>
+                                <p className={`text-xs text-black truncate `}>Dibuat: {loan.date}</p>
+                                <p className={`text-xs truncate `}>{loan.collateral} &middot; Tenor: {loan.tenor}</p>
                               </div>
                             </div>
                             <div className="text-right ml-4">
@@ -173,13 +165,13 @@ const Dashboard = () => {
 
                           {/* Action Buttons Panel */}
                           <div
-                            className={`flex transition-all duration-300 ease-in-out ${slidLoanId === loan.id ? 'w-32' : 'w-0'}`}
+                            className={`flex transition-all duration-300 ease-in-out w-0 ${loan.status === 'active' ? 'group-hover:w-32' : ''}`}
                           >
                             <Button variant="ghost" className="h-full flex-1 flex-col space-y-1 rounded-none text-muted-foreground bg-accent hover:bg-primary/90 " onClick={(e) => handlePaymentClick(e, loan)}>
                               <CreditCard className="w-5 h-5" />
                               <span className="text-xs">Bayar</span>
                             </Button>
-                            <Button variant="ghost" className="h-full flex-1 flex-col space-y-1 rounded-none">
+                            <Button variant="ghost" className="h-full flex-1 flex-col space-y-1 rounded-none hover:bg-primary/90">
                               <ArrowRight className="w-5 h-5" />
                               <span className="text-xs">Detail</span>
                             </Button>
