@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,21 +24,30 @@ const Homepage = () => {
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 min-h-[500px] md:min-h-[600px] items-center">
             {/* Kolom Kiri: Konten Teks dengan penyesuaian padding */}
-            <div className="text-left space-y-6 lg:pr-10">
+            <div className="text-left space-y-6 lg:pr-10 pl-4 md:pl-12">
               <h1 className="text-5xl md:text-6xl font-bold text-foreground leading-tight">
-                Pinjaman mudah<br />untuk <span className="text-primary">UMKM Indonesia</span>
+                Pinjaman mudah
+                <br />
+                untuk <span className="text-primary">UMKM Indonesia</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-md">
-                Dapatkan pinjaman dalam IDRX dengan menggunakan crypto sebagai jaminan. Proses cepat, aman, dan tanpa ribet.
+                Dapatkan pinjaman dalam IDRX dengan menggunakan crypto sebagai
+                jaminan. Proses cepat, aman, dan tanpa ribet.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link to="/apply">
-                  <Button size="lg" className="bg-foreground hover:bg-foreground/80 text-background px-8 py-6 text-lg w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    className="bg-foreground hover:bg-foreground/80 text-background px-8 py-6 text-lg w-full sm:w-auto"
+                  >
                     Get Started
                   </Button>
                 </Link>
                 <Link to="/dashboard">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    className="bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg w-full sm:w-auto"
+                  >
                     See Dashboard
                   </Button>
                 </Link>
@@ -48,7 +63,9 @@ const Homepage = () => {
       {/* How It Works */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Cara Kerja Dingdong Loans</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Cara Kerja Dingdong Loans
+          </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Proses sederhana dalam 3 langkah untuk mendapatkan pinjaman
           </p>
@@ -61,7 +78,8 @@ const Homepage = () => {
               </div>
               <CardTitle>Deposit Crypto</CardTitle>
               <CardDescription>
-                Setorkan aset crypto Anda sebagai jaminan untuk mendapatkan pinjaman
+                Setorkan aset crypto Anda sebagai jaminan untuk mendapatkan
+                pinjaman
               </CardDescription>
             </CardHeader>
           </Card>
@@ -72,7 +90,8 @@ const Homepage = () => {
               </div>
               <CardTitle>Tentukan Jumlah</CardTitle>
               <CardDescription>
-                Pilih jumlah IDRX yang ingin dipinjam berdasarkan nilai jaminan Anda
+                Pilih jumlah IDRX yang ingin dipinjam berdasarkan nilai jaminan
+                Anda
               </CardDescription>
             </CardHeader>
           </Card>
@@ -83,7 +102,8 @@ const Homepage = () => {
               </div>
               <CardTitle>Terima Pinjaman</CardTitle>
               <CardDescription>
-                Dapatkan IDRX langsung ke wallet Anda dan gunakan untuk kebutuhan bisnis
+                Dapatkan IDRX langsung ke wallet Anda dan gunakan untuk
+                kebutuhan bisnis
               </CardDescription>
             </CardHeader>
           </Card>
@@ -94,7 +114,9 @@ const Homepage = () => {
       <section className="bg-muted/30 py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Mengapa Pilih Dingdong Loans?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Mengapa Pilih Dingdong Loans?
+            </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Solusi pinjaman modern yang dirancang khusus untuk UMKM
             </p>
@@ -147,10 +169,15 @@ const Homepage = () => {
             Siap Mengembangkan Bisnis Anda?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Bergabung dengan ribuan UMKM yang sudah merasakan kemudahan Dingdong Loans
+            Bergabung dengan ribuan UMKM yang sudah merasakan kemudahan Dingdong
+            Loans
           </p>
           <Link to="/apply">
-            <Button size="lg" variant="secondary" className="bg-primary text-white hover:bg-primary/90 px-8 py-6 text-lg">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="bg-primary text-white hover:bg-primary/90 px-8 py-6 text-lg"
+            >
               Mulai Sekarang
             </Button>
           </Link>
