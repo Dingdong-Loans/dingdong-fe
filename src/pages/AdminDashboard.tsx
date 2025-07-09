@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -16,11 +14,17 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -28,21 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users,
-  DollarSign,
-  TrendingUp,
-  AlertTriangle,
   Shield,
   Settings,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Clock,
-  FileText,
-  BarChart3,
-  Activity,
+  PlusCircle,
+  Trash2,
+  AlertTriangle,
+  MoveDownLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
@@ -51,816 +48,265 @@ import SkeletonLoader from "@/components/SkeletonLoader";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [selectedLoan, setSelectedLoan] = useState<any>(null);
-  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
-  const [isLoanDialogOpen, setIsLoanDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
+    const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Mock data for admin dashboard
-  const systemStats = {
-    totalUsers: 1247,
-    activeLoans: 89,
-    totalLoanValue: 2450000000, // 2.45B IDRX
-    pendingApplications: 12,
-    averageHealthFactor: 1.8,
-    systemUptime: "99.9%",
-  };
+  // --- Mock Data ---
+  const [loanableAssets, setLoanableAssets] = useState([
+    { id: 'asset-1', name: 'IDRX', symbol: 'IDRX', status: 'Active' },
+  ]);
 
-  const recentUsers = [
-    {
-      id: "USR-001",
-      name: "Andro Wijaya",
-      email: "andro@email.com",
-      kycStatus: "verified",
-      joinDate: "2024-07-01",
-      totalBorrowed: 50000000,
-      status: "active",
-    },
-    {
-      id: "USR-002",
-      name: "Sari Indah",
-      email: "sari@email.com",
-      kycStatus: "pending",
-      joinDate: "2024-07-05",
-      totalBorrowed: 0,
-      status: "new",
-    },
-    {
-      id: "USR-003",
-      name: "Budi Santoso",
-      email: "budi@email.com",
-      kycStatus: "verified",
-      joinDate: "2024-06-15",
-      totalBorrowed: 25000000,
-      status: "active",
-    },
+  const [collateralAssets, setCollateralAssets] = useState([
+    { id: 'col-1', name: 'Bitcoin', symbol: 'BTC', status: 'Active', ltv: '70' },
+    { id: 'col-2', name: 'Ethereum', symbol: 'ETH', status: 'Active', ltv: '65' },
+    { id: 'col-3', name: 'Solana', symbol: 'SOL', status: 'Paused', ltv: '60' },
+  ]);
+
+  const [globalParams, setGlobalParams] = useState({
+    liquidationPenalty: '5',
+    interestModel: 'Linear',
+  });
+
+  const undercollateralizedLoans = [
+    { id: 'LOAN-101', userName: 'Budi Santoso', healthFactor: 1.15 },
+    { id: 'LOAN-102', userName: 'Citra Lestari', healthFactor: 1.05 },
   ];
 
-  const pendingLoans = [
-    {
-      id: "LOAN-456",
-      userId: "USR-004",
-      userName: "Maya Putri",
-      amount: 75000000,
-      collateral: "0.2 BTC",
-      collateralValue: 8500,
-      requestDate: "2024-07-08",
-      status: "pending_review",
-      riskScore: "low",
-    },
-    {
-      id: "LOAN-457",
-      userId: "USR-005",
-      userName: "Rahmat Hidayat",
-      amount: 30000000,
-      collateral: "1.2 ETH",
-      collateralValue: 2400,
-      requestDate: "2024-07-07",
-      status: "pending_approval",
-      riskScore: "medium",
-    },
-  ];
-
-  const systemLogs = [
-    {
-      timestamp: "2024-07-09 14:30",
-      action: "User Registration",
-      user: "Maya Putri",
-      status: "success",
-    },
-    {
-      timestamp: "2024-07-09 14:15",
-      action: "Loan Approved",
-      user: "Andro Wijaya",
-      status: "success",
-    },
-    {
-      timestamp: "2024-07-09 13:45",
-      action: "KYC Submitted",
-      user: "Sari Indah",
-      status: "pending",
-    },
-    {
-      timestamp: "2024-07-09 13:20",
-      action: "Payment Processed",
-      user: "Budi Santoso",
-      status: "success",
-    },
-  ];
-
-  const handleUserAction = (action: string, user: any) => {
-    if (action === "view") {
-      setSelectedUser(user);
-      setIsUserDialogOpen(true);
-    } else if (action === "approve_kyc") {
-      toast({
-        title: "KYC Disetujui",
-        description: `KYC untuk ${user.name} telah disetujui.`,
-      });
-    } else if (action === "suspend") {
-      toast({
-        title: "User Disuspend",
-        description: `${user.name} telah disuspend sementara.`,
-        variant: "destructive",
-      });
-    }
+  const liquidatedFunds = {
+    amount: 12500000,
+    asset: 'IDRX'
   };
 
-  const handleLoanAction = (action: string, loan: any) => {
-    if (action === "view") {
-      setSelectedLoan(loan);
-      setIsLoanDialogOpen(true);
-    } else if (action === "approve") {
-      toast({
-        title: "Pinjaman Disetujui",
-        description: `Pinjaman ${
-          loan.id
-        } sebesar Rp ${loan.amount.toLocaleString()} telah disetujui.`,
-      });
-    } else if (action === "reject") {
-      toast({
-        title: "Pinjaman Ditolak",
-        description: `Pinjaman ${loan.id} telah ditolak.`,
-        variant: "destructive",
-      });
-    }
+  // --- Handler Functions ---
+  const handleLtvChange = (symbol: string, value: string) => {
+    setCollateralAssets(prevAssets =>
+      prevAssets.map(asset =>
+        asset.symbol === symbol ? { ...asset, ltv: value } : asset
+      )
+    );
   };
 
-  const getKYCStatusBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return (
-          <Badge className="bg-green-100 text-green-800">Terverifikasi</Badge>
-        );
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">Menunggu</Badge>
-        );
-      case "rejected":
-        return <Badge className="bg-red-100 text-red-800">Ditolak</Badge>;
-      default:
-        return (
-          <Badge className="bg-gray-100 text-gray-800">Belum Submit</Badge>
-        );
-    }
+  const handleSaveAssetParam = (symbol: string) => {
+    toast({
+      title: "Parameter Aset Disimpan",
+      description: `Parameter LTV untuk ${symbol} telah berhasil diperbarui.`,
+    });
   };
 
-  const getRiskScoreBadge = (score: string) => {
-    switch (score) {
-      case "low":
-        return <Badge className="bg-green-100 text-green-800">Rendah</Badge>;
-      case "medium":
-        return <Badge className="bg-yellow-100 text-yellow-800">Sedang</Badge>;
-      case "high":
-        return <Badge className="bg-red-100 text-red-800">Tinggi</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">-</Badge>;
-    }
+  const handleSaveGlobalParams = () => {
+    toast({
+      title: "Parameter Global Disimpan",
+      description: `Model bunga dan penalti likuidasi telah diperbarui.`,
+    });
   };
 
-  return (
-    <>
+  const handleLiquidate = (loanId: string) => {
+    toast({
+      title: "Likuidasi Berhasil",
+      description: `Pinjaman ${loanId} telah berhasil dilikuidasi.`,
+    });
+  };
+
+  const handleWithdrawLiquidated = () => {
+    toast({
+      title: "Penarikan Berhasil",
+      description: `Dana hasil likuidasi sebesar ${liquidatedFunds.amount.toLocaleString()} ${liquidatedFunds.asset} telah ditarik.`,
+    });
+  };
+
+  // --- Render ---
+  if (loading) {
+    return (
       <div className="min-h-screen bg-background">
         <Navbar />
-
         <main className="container mx-auto px-4 py-8">
-          {loading ? (
-            <SkeletonLoader type="card" />
-          ) : (
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground">
-                Kelola pengguna, pinjaman, dan monitor sistem Dingdong Loans
-              </p>
-            </div>
-          )}
-
-          {/* System Statistics */}
-          {loading ? (
-            <SkeletonLoader type="stats_row" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Users
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats.totalUsers.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    +12% dari bulan lalu
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Pinjaman Aktif
-                  </CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats.activeLoans}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    +5% dari minggu lalu
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Pinjaman
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    Rp {(systemStats.totalLoanValue / 1000000000).toFixed(2)}B
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Volume keseluruhan
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Aplikasi Menunggu
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats.pendingApplications}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Butuh review</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Health Factor
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats.averageHealthFactor}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Rata-rata sistem
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    System Uptime
-                  </CardTitle>
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats.systemUptime}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    30 hari terakhir
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Main Content Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="space-y-6"
-          >
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="users">Pengguna</TabsTrigger>
-              <TabsTrigger value="loans">Pinjaman</TabsTrigger>
-              <TabsTrigger value="system">Sistem</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent User Registrations */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Registrasi Terbaru
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <SkeletonLoader type="table" />
-                    ) : (
-                      <div className="space-y-4">
-                        {recentUsers.slice(0, 3).map((user) => (
-                          <div
-                            key={user.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {user.email}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              {getKYCStatusBadge(user.kycStatus)}
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {user.joinDate}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Pending Loan Applications */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Aplikasi Pinjaman Menunggu
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <SkeletonLoader type="table" />
-                    ) : (
-                      <div className="space-y-4">
-                        {pendingLoans.map((loan) => (
-                          <div
-                            key={loan.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div>
-                              <p className="font-medium">{loan.userName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Rp {loan.amount.toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              {getRiskScoreBadge(loan.riskScore)}
-                              <div className="flex gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    handleLoanAction("approve", loan)
-                                  }
-                                >
-                                  <CheckCircle className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleLoanAction("reject", loan)
-                                  }
-                                >
-                                  <XCircle className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* System Activity Log */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Log Aktivitas Sistem
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <SkeletonLoader type="table" />
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Waktu</TableHead>
-                          <TableHead>Aksi</TableHead>
-                          <TableHead>Pengguna</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {systemLogs.map((log, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{log.timestamp}</TableCell>
-                            <TableCell>{log.action}</TableCell>
-                            <TableCell>{log.user}</TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  log.status === "success"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }
-                              >
-                                {log.status === "success"
-                                  ? "Berhasil"
-                                  : "Menunggu"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="users" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manajemen Pengguna</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <SkeletonLoader type="table" />
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Nama</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Status KYC</TableHead>
-                          <TableHead>Total Pinjaman</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>{user.id}</TableCell>
-                            <TableCell className="font-medium">
-                              {user.name}
-                            </TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              {getKYCStatusBadge(user.kycStatus)}
-                            </TableCell>
-                            <TableCell>
-                              Rp {user.totalBorrowed.toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  user.status === "active"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-blue-100 text-blue-800"
-                                }
-                              >
-                                {user.status === "active" ? "Aktif" : "Baru"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleUserAction("view", user)}
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                                {user.kycStatus === "pending" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() =>
-                                      handleUserAction("approve_kyc", user)
-                                    }
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() =>
-                                    handleUserAction("suspend", user)
-                                  }
-                                >
-                                  <AlertTriangle className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="loans" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Review Aplikasi Pinjaman</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <SkeletonLoader type="table" />
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID Pinjaman</TableHead>
-                          <TableHead>Peminjam</TableHead>
-                          <TableHead>Jumlah</TableHead>
-                          <TableHead>Jaminan</TableHead>
-                          <TableHead>Risk Score</TableHead>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingLoans.map((loan) => (
-                          <TableRow key={loan.id}>
-                            <TableCell className="font-medium">
-                              {loan.id}
-                            </TableCell>
-                            <TableCell>{loan.userName}</TableCell>
-                            <TableCell>
-                              Rp {loan.amount.toLocaleString()}
-                            </TableCell>
-                            <TableCell>{loan.collateral}</TableCell>
-                            <TableCell>
-                              {getRiskScoreBadge(loan.riskScore)}
-                            </TableCell>
-                            <TableCell>{loan.requestDate}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleLoanAction("view", loan)}
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    handleLoanAction("approve", loan)
-                                  }
-                                >
-                                  <CheckCircle className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() =>
-                                    handleLoanAction("reject", loan)
-                                  }
-                                >
-                                  <XCircle className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="system" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5" />
-                      Pengaturan Sistem
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="max-ltv">Maksimal LTV Ratio</Label>
-                      <Input id="max-ltv" value="66.7%" readOnly />
-                    </div>
-                    <div>
-                      <Label htmlFor="interest-rate">Suku Bunga Default</Label>
-                      <Input id="interest-rate" value="8.5%" readOnly />
-                    </div>
-                    <div>
-                      <Label htmlFor="min-health">Minimum Health Factor</Label>
-                      <Input id="min-health" value="1.2" readOnly />
-                    </div>
-                    <Button className="w-full">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Update Pengaturan
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5" />
-                      Peringatan Sistem
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="p-3 border-l-4 border-yellow-500 bg-yellow-50">
-                        <p className="text-sm font-medium">
-                          Health Factor Rendah
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          3 pinjaman memiliki health factor dibawah 1.5
-                        </p>
-                      </div>
-                      <div className="p-3 border-l-4 border-blue-500 bg-blue-50">
-                        <p className="text-sm font-medium">KYC Pending</p>
-                        <p className="text-xs text-muted-foreground">
-                          12 aplikasi KYC menunggu review
-                        </p>
-                      </div>
-                      <div className="p-3 border-l-4 border-green-500 bg-green-50">
-                        <p className="text-sm font-medium">Sistem Normal</p>
-                        <p className="text-xs text-muted-foreground">
-                          Semua service berjalan dengan baik
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <SkeletonLoader type="card" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            <SkeletonLoader type="form" />
+            <SkeletonLoader type="form" />
+          </div>
         </main>
-
         <Footer />
       </div>
+    );
+  }
 
-      {/* User Detail Dialog */}
-      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detail Pengguna: {selectedUser?.name}</DialogTitle>
-            <DialogDescription>
-              Informasi lengkap tentang pengguna dan aktivitas pinjaman
-            </DialogDescription>
-          </DialogHeader>
-          {selectedUser && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>ID Pengguna</Label>
-                  <p className="text-sm">{selectedUser.id}</p>
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-sm">{selectedUser.email}</p>
-                </div>
-                <div>
-                  <Label>Status KYC</Label>
-                  <div className="mt-1">
-                    {getKYCStatusBadge(selectedUser.kycStatus)}
-                  </div>
-                </div>
-                <div>
-                  <Label>Tanggal Bergabung</Label>
-                  <p className="text-sm">{selectedUser.joinDate}</p>
-                </div>
-                <div>
-                  <Label>Total Pinjaman</Label>
-                  <p className="text-sm">
-                    Rp {selectedUser.totalBorrowed.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <p className="text-sm">{selectedUser.status}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsUserDialogOpen(false)}
-            >
-              Tutup
-            </Button>
-            <Button>Update Status</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
 
-      {/* Loan Detail Dialog */}
-      <Dialog open={isLoanDialogOpen} onOpenChange={setIsLoanDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detail Pinjaman: {selectedLoan?.id}</DialogTitle>
-            <DialogDescription>
-              Review detail aplikasi pinjaman dan berikan keputusan
-            </DialogDescription>
-          </DialogHeader>
-          {selectedLoan && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Peminjam</Label>
-                  <p className="text-sm">{selectedLoan.userName}</p>
-                </div>
-                <div>
-                  <Label>Jumlah Pinjaman</Label>
-                  <p className="text-sm">
-                    Rp {selectedLoan.amount.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <Label>Jaminan</Label>
-                  <p className="text-sm">{selectedLoan.collateral}</p>
-                </div>
-                <div>
-                  <Label>Nilai Jaminan</Label>
-                  <p className="text-sm">
-                    ${selectedLoan.collateralValue.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <Label>Risk Score</Label>
-                  <div className="mt-1">
-                    {getRiskScoreBadge(selectedLoan.riskScore)}
-                  </div>
-                </div>
-                <div>
-                  <Label>Tanggal Aplikasi</Label>
-                  <p className="text-sm">{selectedLoan.requestDate}</p>
-                </div>
-              </div>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            Admin Control Panel
+          </h1>
+          <p className="text-muted-foreground">
+            Kelola aset, parameter pinjaman, dan fungsi kritis protokol.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Asset Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Manajemen Aset
+              </CardTitle>
+              <CardDescription>
+                Atur aset yang dapat dipinjamkan dan diterima sebagai jaminan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="collateral">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="collateral">Aset Jaminan</TabsTrigger>
+                  <TabsTrigger value="lendable">Aset Pinjaman</TabsTrigger>
+                </TabsList>
+                <TabsContent value="collateral" className="mt-4">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {collateralAssets.map(asset => (
+                        <TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" /> Tambah Aset Jaminan</Button></DialogTrigger>
+                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Jaminan Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Nama Aset</Label><Input placeholder="Contoh: Bitcoin" /></div><div className="space-y-2"><Label>Simbol</Label><Input placeholder="Contoh: BTC" /></div></div><DialogFooter><Button variant="outline">Batal</Button><Button>Simpan</Button></DialogFooter></DialogContent>
+                  </Dialog>
+                </TabsContent>
+                <TabsContent value="lendable" className="mt-4">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {loanableAssets.map(asset => (
+                        <TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" /> Tambah Aset Pinjaman</Button></DialogTrigger>
+                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Nama Aset</Label><Input placeholder="Contoh: Rupiah Token" /></div><div className="space-y-2"><Label>Simbol</Label><Input placeholder="Contoh: IDRX" /></div></div><DialogFooter><Button variant="outline">Batal</Button><Button>Simpan</Button></DialogFooter></DialogContent>
+                  </Dialog>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* ========== KODE PARAMETER PINJAMAN YANG DIPERBARUI ========== */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Parameter Pinjaman
+              </CardTitle>
+              <CardDescription>
+                Atur parameter global dan LTV spesifik untuk setiap aset jaminan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="admin-notes">Catatan Admin</Label>
-                <Textarea
-                  id="admin-notes"
-                  placeholder="Tambahkan catatan untuk keputusan ini..."
-                  className="mt-1"
-                />
+                <h3 className="font-semibold mb-2 text-base">Parameter Global</h3>
+                <div className="p-4 rounded-lg bg-muted space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="interest-model">Model Bunga</Label>
+                      <Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}>
+                        <SelectTrigger id="interest-model"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Linear">Linear</SelectItem>
+                          <SelectItem value="Majemuk">Majemuk</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label>
+                      <Input id="liq-penalty" value={globalParams.liquidationPenalty} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value })} />
+                    </div>
+                  </div>
+                  <Button className="w-full" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button>
+                </div>
               </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsLoanDialogOpen(false)}
-            >
-              Tutup
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleLoanAction("reject", selectedLoan)}
-            >
-              Tolak
-            </Button>
-            <Button onClick={() => handleLoanAction("approve", selectedLoan)}>
-              Setujui
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+
+              <div>
+                <h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3>
+                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                  {collateralAssets.map(asset => (
+                    <Card key={asset.symbol} className="bg-background">
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center">
+                          <Label htmlFor={`ltv-${asset.symbol}`} className="font-semibold">{asset.name} ({asset.symbol})</Label>
+                          <div className="flex items-center gap-2 w-1/2">
+                            <Input id={`ltv-${asset.symbol}`} className="h-8" value={asset.ltv} onChange={(e) => handleLtvChange(asset.symbol, e.target.value)} />
+                            <span className="text-muted-foreground">%</span>
+                            <Button size="sm" className="h-8" onClick={() => handleSaveAssetParam(asset.symbol)}>Simpan</Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Liquidity and Liquidation Management */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Manajemen Likuiditas & Likuidasi
+              </CardTitle>
+              <CardDescription>
+                Kelola likuiditas pool dan lakukan tindakan likuidasi.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3>
+                <Table>
+                  <TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {undercollateralizedLoans.map(loan => (
+                      <TableRow key={loan.id} className="text-red-600">
+                        <TableCell className="font-medium">{loan.userName}</TableCell>
+                        <TableCell className="font-mono">{loan.healthFactor}</TableCell>
+                        <TableCell className="text-right"><Button size="sm" variant="destructive" onClick={() => handleLiquidate(loan.id)}>Lakukan Likuidasi</Button></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Pool Likuiditas</h3>
+                  <Card className="bg-muted"><CardContent className="pt-6">
+                    <div className="flex justify-between items-center"><p className="text-muted-foreground">Total Likuiditas IDRX</p><p className="text-xl font-bold">Rp 15,750,000,000</p></div>
+                    <div className="flex gap-2 mt-4"><Button className="w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah</Button><Button className="w-full" variant="outline"><MoveDownLeft className="w-4 h-4 mr-2" />Tarik</Button></div>
+                  </CardContent></Card>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Aset Hasil Likuidasi</h3>
+                  <Card className="bg-muted"><CardContent className="pt-6">
+                    <div className="flex justify-between items-center">
+                      <div><p className="text-muted-foreground">Dana Tersedia</p><p className="text-xl font-bold">Rp {liquidatedFunds.amount.toLocaleString()}</p></div>
+                      <Button onClick={handleWithdrawLiquidated}><ChevronsRight className="w-4 h-4 mr-2" />Tarik Dana</Button>
+                    </div>
+                  </CardContent></Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
   );
 };
 

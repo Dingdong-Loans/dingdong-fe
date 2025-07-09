@@ -20,6 +20,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,10 @@ const Dashboard = () => {
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
+
+  // State baru untuk dialog pembayaran
+  const [repaymentType, setRepaymentType] = useState("monthly");
+  const [customAmount, setCustomAmount] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
@@ -46,13 +51,14 @@ const Dashboard = () => {
       monthlyPayment: "4,500,000"
     },
     {
-      id: "Pinjaman Modal Kerja #002",
+      id: "LOAN-002",
       date: "28 Okt 2024",
       collateral: "8 ETH",
       tenor: "24 Bulan",
       amount: "30,000,000",
-      size: "25,000,000",
-      status: "inactive",
+      size: "18,000,000",
+      status: "active",
+      monthlyPayment: "2,187,500"
     },
     {
       id: "Pinjaman Ekspansi #003",
@@ -87,8 +93,23 @@ const Dashboard = () => {
   const handlePaymentClick = (e: React.MouseEvent, loan: any) => {
     e.stopPropagation();
     setSelectedLoan(loan);
+    setRepaymentType("monthly"); // Reset ke default saat dialog dibuka
+    setCustomAmount(""); // Reset jumlah custom
     setIsPaymentDialogOpen(true);
   };
+
+  const getRepaymentAmount = () => {
+    if (!selectedLoan) return 0;
+
+    // Fungsi untuk mengubah string Rupiah menjadi angka
+    const parseCurrency = (value: string) => parseFloat(value.replace(/,/g, ''));
+
+    if (repaymentType === "full") return parseCurrency(selectedLoan.size);
+    if (repaymentType === "monthly") return parseCurrency(selectedLoan.monthlyPayment);
+    return parseFloat(customAmount) || 0;
+  };
+
+  const paymentAmount = getRepaymentAmount();
 
   const handlePaymentSubmit = () => {
     toast({
@@ -152,7 +173,7 @@ const Dashboard = () => {
                             </div>
                             <div className="text-right ml-4">
                               <p className="font-bold text-lg">Rp {loan.amount}</p>
-                              <p className={`text-xs ${loan.status === 'inactive' ? 'text-gray-300' : 'text-muted-foreground'}`}>Size: Rp {loan.size}</p>
+                              <p className={`text-xs ${loan.status === 'inactive' ? 'text-gray-300' : 'text-muted-foreground'}`}>Sisa: Rp {loan.size}</p>
                               <div className="mt-2 flex items-center gap-2 justify-end">
                                 {loan.status === 'active' ? (
                                   <Badge className="bg-primary/20 text-primary border-primary/30">Aktif</Badge>
@@ -224,19 +245,69 @@ const Dashboard = () => {
         <Footer />
       </div>
 
+      {/* ========== DIALOG KODE YANG DIPERBARUI ========== */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Bayar Cicilan untuk {selectedLoan?.id}</DialogTitle>
-            <DialogDescription>Konfirmasi detail pembayaran Anda. Pembayaran akan dilakukan menggunakan saldo IDRX Anda.</DialogDescription>
+            <DialogTitle>Pembayaran Pinjaman: {selectedLoan?.id}</DialogTitle>
+            <DialogDescription>
+              Pilih jenis pembayaran dan lakukan pembayaran menggunakan IDRX.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="p-4 bg-gray-100 rounded-md"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Cicilan Bulanan</span><span className="font-medium">Rp {selectedLoan?.monthlyPayment}</span></div></div>
-            <div className="space-y-2"><Label htmlFor="payment-amount">Jumlah Pembayaran</Label><Input id="payment-amount" value={`Rp ${selectedLoan?.monthlyPayment}`} readOnly /></div>
+            <div className="space-y-2">
+              <Label>Jenis Pembayaran</Label>
+              <RadioGroup value={repaymentType} onValueChange={setRepaymentType} className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="full" id="full" />
+                  <Label htmlFor="full" className="cursor-pointer">
+                    Pelunasan (Rp {parseFloat(selectedLoan?.size.replace(/,/g, '')).toLocaleString('id-ID')})
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="monthly" id="monthly" />
+                  <Label htmlFor="monthly" className="cursor-pointer">
+                    Cicilan Bulanan (Rp {parseFloat(selectedLoan?.monthlyPayment.replace(/,/g, '')).toLocaleString('id-ID')})
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="custom" id="custom" />
+                  <Label htmlFor="custom" className="cursor-pointer">
+                    Jumlah Custom
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {repaymentType === "custom" && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-amount">Jumlah Pembayaran (IDRX)</Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  placeholder="Masukkan jumlah"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-1 pt-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Jumlah Pembayaran:</span>
+                <span className="font-medium">Rp {paymentAmount.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Dalam IDRX:</span>
+                <span className="font-medium">{paymentAmount.toLocaleString('id-ID')} IDRX</span>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Batal</Button>
-            <Button className="bg-primary text-primary-foreground" onClick={handlePaymentSubmit}>Konfirmasi Pembayaran</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handlePaymentSubmit}>
+              Konfirmasi Pembayaran
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

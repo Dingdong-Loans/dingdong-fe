@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
@@ -23,10 +22,10 @@ const AboutUs = () => {
 
         {/* Mission & Vision */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+          <Card>
             <CardHeader>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Target className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <Target className="h-6 w-6 text-primary" />
               </div>
               <CardTitle className="text-2xl">Misi Kami</CardTitle>
             </CardHeader>
@@ -40,10 +39,10 @@ const AboutUs = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white">
+          <Card>
             <CardHeader>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Lightbulb className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <Lightbulb className="h-6 w-6 text-primary" />
               </div>
               <CardTitle className="text-2xl">Visi Kami</CardTitle>
             </CardHeader>
@@ -61,7 +60,7 @@ const AboutUs = () => {
         <div className="mb-16">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-8">Cerita Kami</h2>
-            <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-8">
+            <div className="bg-muted/50 rounded-lg p-8">
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
                 Dingdong Loans lahir dari pengalaman langsung melihat kesulitan
                 yang dihadapi pelaku UMKM dalam mengakses modal usaha. Di satu
@@ -92,8 +91,8 @@ const AboutUs = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="h-8 w-8 text-blue-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Keamanan</CardTitle>
               </CardHeader>
@@ -107,8 +106,8 @@ const AboutUs = () => {
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Heart className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Heart className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Transparansi</CardTitle>
               </CardHeader>
@@ -122,8 +121,8 @@ const AboutUs = () => {
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-purple-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Fokus Pengguna</CardTitle>
               </CardHeader>
@@ -137,8 +136,8 @@ const AboutUs = () => {
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="h-8 w-8 text-orange-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Inovasi</CardTitle>
               </CardHeader>
@@ -154,10 +153,10 @@ const AboutUs = () => {
 
         {/* Security Assurance */}
         <div className="mb-16">
-          <Card className="bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
+          <Card className="bg-muted/50">
             <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lock className="h-8 w-8 text-blue-600" />
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="h-8 w-8 text-primary" />
               </div>
               <CardTitle className="text-2xl">Komitmen Keamanan</CardTitle>
               <CardDescription className="text-lg">
@@ -205,59 +204,9 @@ const AboutUs = () => {
           </Card>
         </div>
 
-        {/* Future Outlook */}
-        <div className="mb-16">
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Globe className="h-8 w-8 text-green-600" />
-              </div>
-              <CardTitle className="text-2xl">Masa Depan Bersama</CardTitle>
-              <CardDescription className="text-lg">
-                Rencana dan komitmen kami untuk komunitas UMKM Indonesia
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center max-w-3xl mx-auto">
-                <p className="text-muted-foreground leading-relaxed mb-6">
-                  Kami memiliki visi jangka panjang untuk menjadi ekosistem
-                  finansial terlengkap bagi UMKM di Indonesia. Dalam roadmap ke
-                  depan, kami akan terus mengembangkan berbagai fitur inovatif.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <h4 className="font-semibold mb-2">💳 Payment Gateway</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Sistem pembayaran terintegrasi untuk memudahkan transaksi
-                    bisnis UMKM.
-                  </p>
-                </div>
-                <div className="text-center">
-                  <h4 className="font-semibold mb-2">📊 Business Analytics</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Tools analitik bisnis untuk membantu UMKM mengoptimalkan
-                    operasional.
-                  </p>
-                </div>
-                <div className="text-center">
-                  <h4 className="font-semibold mb-2">
-                    🤝 Marketplace Integration
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Integrasi dengan marketplace untuk memperluas jangkauan
-                    penjualan.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Call to Action */}
         <div className="text-center">
-          <Card className="bg-gradient-to-r from-blue-500 to-green-500 text-white border-0">
+          <Card className="bg-foreground text-background border-0">
             <CardContent className="py-12">
               <h2 className="text-3xl font-bold mb-4">
                 Bergabunglah dengan Ribuan UMKM Lainnya
@@ -269,15 +218,13 @@ const AboutUs = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   size="lg"
-                  variant="secondary"
-                  className="bg-white text-blue-600 hover:bg-gray-100"
+                  className="bg-primary text-white hover:bg-primary/90"
                 >
                   Mulai Sekarang
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="bg-white text-blue-600 hover:bg-gray-100"
+                  variant="secondary"
                 >
                   Pelajari Lebih Lanjut
                 </Button>
