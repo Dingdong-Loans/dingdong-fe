@@ -156,7 +156,7 @@ const ApplyLoan = () => {
                   </Card>
                   <div className="space-y-2">
                     <Label htmlFor="amount">Jumlah Pinjaman (IDRX)</Label>
-                    <Input id="amount" type="number" placeholder="50000000" value={loanAmount} onChange={(e) => setLoanAmount(e.target.value)} className={isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500" : ""}/>
+                    <Input id="amount" type="number" placeholder="ex. 50000000" value={loanAmount} onChange={(e) => setLoanAmount(e.target.value)} className={isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500" : ""}/>
                     {isLoanAmountExceeded && (<Alert variant="destructive" className="mt-2 text-xs"><AlertCircle className="h-4 w-4" /><AlertDescription>Jumlah pinjaman melebihi batas maksimal.</AlertDescription></Alert>)}
                   </div>
                   <div className="space-y-2">
@@ -178,7 +178,7 @@ const ApplyLoan = () => {
                     <div className="flex justify-between items-center"><span className="text-muted-foreground">LTV Setelah Pinjaman</span><Badge variant="outline">{loanAmount ? `${((parseFloat(loanAmount) / usdToIdrRate) / totalCollateralValueUSD * 100).toFixed(2)}%` : '0.00%'}</Badge></div>
                   </div>
                   <div className="border-t pt-4">
-                    <Button className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600" size="lg" onClick={handleSubmit} disabled={!loanAmount || !duration || loading || isLoanAmountExceeded}>{loading ? "Memproses Aplikasi..." : "Ajukan Pinjaman"}</Button>
+                    <Button className="w-full bg-primary from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600" size="lg" onClick={handleSubmit} disabled={!loanAmount || !duration || loading || isLoanAmountExceeded}>{loading ? "Memproses Aplikasi..." : "Ajukan Pinjaman"}</Button>
                   </div>
                 </CardContent>
               </Card>

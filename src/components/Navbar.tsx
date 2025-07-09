@@ -46,11 +46,12 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { name: "Dashboard", path: "/dashboard" },
     { name: "Beranda", path: "/" },
+    { name: "Dashboard", path: "/dashboard" },
     { name: "FAQ", path: "/faq" },
     { name: "Tentang Kami", path: "/about" },
     { name: "Whitepaper", path: "/whitepaper" },
+    { name: "Admin Dashboard", path: "/admindashboard" }
     // { name: "Syarat & Ketentuan", path: "/terms" },
   ];
 
