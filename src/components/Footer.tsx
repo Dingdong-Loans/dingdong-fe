@@ -77,6 +77,14 @@ const Footer = () => {
               </li>
               <li>
                 <Link
+                  to="/terms"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Syarat & Ketentuan
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="#"
                   className="hover:text-foreground transition-colors"
                 >
@@ -91,7 +99,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link
-                  to="#"
+                  to="/terms"
                   className="hover:text-foreground transition-colors"
                 >
                   Syarat & Ketentuan
@@ -99,7 +107,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="#"
+                  to="/privacy"
                   className="hover:text-foreground transition-colors"
                 >
                   Kebijakan Privasi

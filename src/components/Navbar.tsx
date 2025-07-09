@@ -51,6 +51,7 @@ const Navbar = () => {
     { name: "FAQ", path: "/faq" },
     { name: "Tentang Kami", path: "/about" },
     { name: "Whitepaper", path: "/whitepaper" },
+    // { name: "Syarat & Ketentuan", path: "/terms" },
   ];
 
   return (
