@@ -9,13 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Carousel, // Keep for potential future use or if styling is easier for single item
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"; //
 import { Calculator, AlertCircle, CheckCircle, ArrowRight, Wallet, TrendingUp, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -31,16 +24,16 @@ const ApplyLoan = () => {
   const [currentTutorialStepIndex, setCurrentTutorialStepIndex] = useState(0); //
   const [isTutorialOpen, setIsTutorialOpen] = useState(false); //
 
-  const totalCollateralValueUSD = 12500;
+  const totalCollateralValueIDR = 130000000;
   const maxLTV = 2/3;   //perbadingan jumlah pinjaman yang dimiliki dengan jaminan yang dimiliki
   const usdToIdrRate = 15800;
-  const maxLoanableUSD = totalCollateralValueUSD * maxLTV;
-  const maxLoanableIDRX = maxLoanableUSD * usdToIdrRate;
+  const maxLoanableUSD = totalCollateralValueIDR * maxLTV;
+  const maxLoanableIDRX = maxLoanableUSD;
   const isLoanAmountExceeded = parseFloat(loanAmount) > maxLoanableIDRX;
 
   const calculateRepayments = () => {
     const amount = parseFloat(loanAmount) || 0;
-    const interestRate = 8.5;
+    const interestRate = 1.5;
     const monthlyPayment = duration ? (amount * (1 + interestRate/100)) / parseInt(duration) : 0;
     return { monthlyPayment };
   };
@@ -150,7 +143,7 @@ const ApplyLoan = () => {
                 <CardContent className="space-y-6">
                   <Card className="bg-gray-50/50">
                     <CardContent className="pt-4 space-y-3">
-                      <div className="flex justify-between items-center text-sm"><span className="text-muted-foreground flex items-center"><Wallet className="w-4 h-4 mr-2"/>Total Jaminan Anda</span><span className="font-medium">${totalCollateralValueUSD.toLocaleString('en-US')}</span></div>
+                      <div className="flex justify-between items-center text-sm"><span className="text-muted-foreground flex items-center"><Wallet className="w-4 h-4 mr-2"/>Total Jaminan Anda</span><span className="font-medium">Rp {totalCollateralValueIDR.toLocaleString('en-US')}</span></div>
                       <div className="flex justify-between items-center text-sm"><span className="text-muted-foreground flex items-center"><TrendingUp className="w-4 h-4 mr-2"/>Maksimal Pinjaman</span><span className="font-medium text-green-600">Rp {maxLoanableIDRX.toLocaleString('id-ID')}</span></div>
                     </CardContent>
                   </Card>
@@ -173,9 +166,9 @@ const ApplyLoan = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center"><span className="text-muted-foreground">Jumlah Pinjaman</span><span className="font-medium">{loanAmount ? `Rp ${parseFloat(loanAmount).toLocaleString('id-ID')}` : '-'}</span></div>
                     <div className="flex justify-between items-center"><span className="text-muted-foreground">Jangka Waktu</span><span className="font-medium">{duration ? `${duration} Bulan` : '-'}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-muted-foreground">Suku Bunga</span><span className="font-medium">8.5% per tahun</span></div>
+                    <div className="flex justify-between items-center"><span className="text-muted-foreground">Suku Bunga</span><span className="font-medium">1.5% per tahun</span></div>
                     <div className="flex justify-between items-center text-lg"><span className="text-muted-foreground">Pembayaran Bulanan</span><span className="font-bold text-blue-600">{monthlyPayment > 0 ? `Rp ${monthlyPayment.toLocaleString('id-ID')}` : '-'}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-muted-foreground">LTV Setelah Pinjaman</span><Badge variant="outline">{loanAmount ? `${((parseFloat(loanAmount) / usdToIdrRate) / totalCollateralValueUSD * 100).toFixed(2)}%` : '0.00%'}</Badge></div>
+                    <div className="flex justify-between items-center"><span className="text-muted-foreground">LTV Setelah Pinjaman</span><Badge variant="outline">{loanAmount ? `${((parseFloat(loanAmount) / usdToIdrRate) / totalCollateralValueIDR * 100).toFixed(2)}%` : '0.00%'}</Badge></div>
                   </div>
                   <div className="border-t pt-4">
                     <Button className="w-full bg-primary from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600" size="lg" onClick={handleSubmit} disabled={!loanAmount || !duration || loading || isLoanAmountExceeded}>{loading ? "Memproses Aplikasi..." : "Ajukan Pinjaman"}</Button>

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Copy, QrCode, AlertTriangle, CheckCircle, Clock, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { Copy, QrCode, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -67,7 +67,7 @@ const ManageCollateral = () => {
       });
     }, 2000);
   };
-  
+
   const handleWithdrawal = () => {
     setLoading(true);
     setWithdrawalStatus("pending");
@@ -84,7 +84,7 @@ const ManageCollateral = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
@@ -97,13 +97,13 @@ const ManageCollateral = () => {
             <Tabs defaultValue="deposit" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="deposit">
-                  <ArrowUpCircle className="w-4 h-4 mr-2"/> Deposit
+                  <ArrowUpCircle className="w-4 h-4 mr-2" /> Deposit
                 </TabsTrigger>
                 <TabsTrigger value="withdraw">
-                  <ArrowDownCircle className="w-4 h-4 mr-2"/> Tarik
+                  <ArrowDownCircle className="w-4 h-4 mr-2" /> Tarik
                 </TabsTrigger>
               </TabsList>
-              
+
               {/* Deposit Tab */}
               <TabsContent value="deposit">
                 <Card>
@@ -129,18 +129,18 @@ const ManageCollateral = () => {
                       <Input id="amount" type="number" placeholder="0.001" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} />
                     </div>
                     <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <QrCode className="w-10 h-10 text-gray-400" />
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <QrCode className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs">Alamat Wallet</Label>
+                        <div className="flex items-center">
+                          <Input value={depositAddress} readOnly className="font-mono text-xs h-8" />
+                          <Button size="sm" variant="outline" onClick={copyAddress} className="ml-2 h-8">
+                            <Copy className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <div className="flex-1">
-                            <Label className="text-xs">Alamat Wallet</Label>
-                            <div className="flex items-center">
-                                <Input value={depositAddress} readOnly className="font-mono text-xs h-8" />
-                                <Button size="sm" variant="outline" onClick={copyAddress} className="ml-2 h-8">
-                                    <Copy className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </div>
+                      </div>
                     </div>
                     <Button className="w-full" onClick={handleDeposit} disabled={!depositAmount || !depositCollateralType || loading}>
                       {loading && depositStatus === 'pending' ? 'Memproses...' : 'Deposit Jaminan'}
@@ -157,7 +157,7 @@ const ManageCollateral = () => {
                     <CardDescription>Pilih jaminan yang tersedia untuk ditarik.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="crypto-type-withdraw">Jenis Crypto</Label>
                       <Select value={withdrawalCollateralType} onValueChange={setWithdrawalCollateralType}>
                         <SelectTrigger><SelectValue placeholder="Pilih jaminan yang akan ditarik" /></SelectTrigger>
@@ -177,7 +177,7 @@ const ManageCollateral = () => {
                     <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
                       Penarikan akan mempengaruhi Health Factor pinjaman Anda. Pastikan Health Factor tetap di atas ambang batas aman.
                     </div>
-                    <Button variant="destructive" className="w-full" onClick={handleWithdrawal} disabled={!withdrawalAmount || !withdrawalCollateralType || loading}>
+                    <Button variant="destructive" className="w-full bg-primary" onClick={handleWithdrawal} disabled={!withdrawalAmount || !withdrawalCollateralType || loading}>
                       {loading && withdrawalStatus === 'pending' ? 'Memproses...' : 'Tarik Jaminan'}
                     </Button>
                   </CardContent>
@@ -196,7 +196,7 @@ const ManageCollateral = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {availableCollateral.map(asset => (
-                   <div key={asset.type} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={asset.type} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${asset.symbol === 'BTC' ? 'bg-orange-500' : 'bg-blue-500'}`}>
                         <span className="text-white text-xs font-bold">{asset.symbol}</span>
@@ -212,10 +212,10 @@ const ManageCollateral = () => {
                   </div>
                 ))}
                 <div className="border-t pt-4 mt-4 text-center">
-                    <p className="text-sm font-medium">Total Nilai Jaminan</p>
-                    <p className="text-2xl font-bold">
-                        Rp {availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0).toLocaleString('en-US')}
-                    </p>
+                  <p className="text-sm font-medium">Total Nilai Jaminan</p>
+                  <p className="text-2xl font-bold">
+                    Rp {availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0).toLocaleString('en-US')}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -243,7 +243,7 @@ const ManageCollateral = () => {
                       <TableCell>{tx.date}</TableCell>
                       <TableCell>
                         <Badge variant={tx.type === 'Deposit' ? 'default' : 'secondary'}
-                           className={tx.type === 'Deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          className={tx.type === 'Deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                           {tx.type}
                         </Badge>
                       </TableCell>

@@ -91,12 +91,12 @@ const Dashboard = () => {
   ];
 
   const portfolioItems = [
-    { name: "Bitcoin", value: "Rp 1.875.000.000" },
-    { name: "Ethereum", value: "Rp 930.000.000" },
-    { name: "Solana", value: "Rp 1.500.000.000" },
+    { name: "Bitcoin", value: "Rp 100.000.000" },
+    { name: "Ethereum", value: "Rp 20.000.000" },
+    { name: "Solana", value: "Rp 10.000.000" },
   ];
 
-  const totalCollateralValue = 120000000;
+  const totalCollateralValue = 135000000;
   const totalOutstandingLoans = activeLoans
     .filter(loan => loan.status === 'active')
     .reduce((acc, loan) => acc + parseFloat(loan.size.replace(/,/g, '')), 0);
