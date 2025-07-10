@@ -518,7 +518,7 @@ const Whitepaper = () => {
                             onClick={() => scrollToSection(section.id)}
                             className="w-full text-left p-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-2"
                           >
-                            <Icon className="w-4 h-4 text-blue-500" />
+                            <Icon className="w-4 h-4 text-primary" />
                             <span className="text-sm">{section.title}</span>
                           </button>
                         );
@@ -545,10 +545,7 @@ const Whitepaper = () => {
               </p>
 
               <div className="flex justify-center gap-4 mb-8">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-green-500"
-                >
+                <Button size="lg" className="bg-primary hover:bg-primary/90">
                   <Download className="w-5 h-5 mr-2" />
                   {currentContent.downloadPdf}
                 </Button>
@@ -568,7 +565,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <BookOpen className="w-6 h-6 mr-2 text-blue-500" />
+                    <BookOpen className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.abstract.title}
                   </CardTitle>
                 </CardHeader>
@@ -590,7 +587,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <Globe className="w-6 h-6 mr-2 text-blue-500" />
+                    <Globe className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.introduction.title}
                   </CardTitle>
                 </CardHeader>
@@ -616,7 +613,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <TrendingUp className="w-6 h-6 mr-2 text-blue-500" />
+                    <TrendingUp className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.problem.title}
                   </CardTitle>
                 </CardHeader>
@@ -648,7 +645,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <CheckCircle className="w-6 h-6 mr-2 text-blue-500" />
+                    <CheckCircle className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.solution.title}
                   </CardTitle>
                 </CardHeader>
@@ -680,8 +677,8 @@ const Whitepaper = () => {
 
                       {section.borrowerJourney && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                          <div className="border rounded-lg p-4 bg-blue-50">
-                            <h4 className="font-semibold text-blue-600 mb-2">
+                          <div className="border rounded-lg p-4 bg-accent">
+                            <h4 className="font-semibold text-primary mb-2">
                               {language === "id"
                                 ? "Untuk Peminjam (UMKM)"
                                 : "For Borrowers (SMEs)"}
@@ -694,8 +691,8 @@ const Whitepaper = () => {
                               )}
                             </ol>
                           </div>
-                          <div className="border rounded-lg p-4 bg-green-50">
-                            <h4 className="font-semibold text-green-600 mb-2">
+                          <div className="border rounded-lg p-4 bg-accent">
+                            <h4 className="font-semibold text-primary mb-2">
                               {language === "id"
                                 ? "Untuk Pemberi Pinjaman (Penyedia Likuiditas)"
                                 : "For Lenders (Liquidity Providers)"}
@@ -719,7 +716,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <Settings className="w-6 h-6 mr-2 text-blue-500" />
+                    <Settings className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.architecture.title}
                   </CardTitle>
                 </CardHeader>
@@ -743,7 +740,7 @@ const Whitepaper = () => {
                                 (contract, contractIndex) => (
                                   <div key={contractIndex}>
                                     {contractIndex ===
-                                    section.contracts.length - 1
+                                      section.contracts.length - 1
                                       ? "└── "
                                       : "├── "}
                                     {contract}
@@ -819,7 +816,7 @@ const Whitepaper = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center">
-                    <Shield className="w-6 h-6 mr-2 text-blue-500" />
+                    <Shield className="w-6 h-6 mr-2 text-primary" />
                     {currentContent.kyc.title}
                   </CardTitle>
                 </CardHeader>
@@ -840,19 +837,19 @@ const Whitepaper = () => {
                         <div className="bg-gray-50 p-6 rounded-lg">
                           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                             <div className="mb-4 md:mb-0">
-                              <h4 className="font-bold text-blue-600">
+                              <h4 className="font-bold text-primary">
                                 {section.flow[0].actor}
                               </h4>
                             </div>
                             <ArrowRight className="mx-4 text-gray-400 hidden md:block" />
                             <div className="mb-4 md:mb-0">
-                              <h4 className="font-bold text-green-600">
+                              <h4 className="font-bold text-primary">
                                 {section.flow[1].actor}
                               </h4>
                             </div>
                             <ArrowRight className="mx-4 text-gray-400 hidden md:block" />
                             <div>
-                              <h4 className="font-bold text-purple-600">
+                              <h4 className="font-bold text-primary">
                                 {section.flow[2].actor}
                               </h4>
                             </div>
@@ -862,13 +859,7 @@ const Whitepaper = () => {
                             {section.flow.map((item, itemIndex) => (
                               <div key={itemIndex} className="flex items-start">
                                 <div
-                                  className={`${
-                                    itemIndex === 0
-                                      ? "bg-blue-100"
-                                      : itemIndex === 1
-                                      ? "bg-green-100"
-                                      : "bg-purple-100"
-                                  } p-3 rounded-lg mr-4`}
+                                  className={`bg-primary/20 p-3 rounded-lg mr-4`}
                                 >
                                   <span className="font-mono text-sm">
                                     {item.function}
@@ -881,10 +872,10 @@ const Whitepaper = () => {
                                         ? "Pengajuan Data"
                                         : "Data Submission"
                                       : itemIndex === 1
-                                      ? language === "id"
-                                        ? "Notifikasi Status"
-                                        : "Status Notification"
-                                      : "KYC Approved"}
+                                        ? language === "id"
+                                          ? "Notifikasi Status"
+                                          : "Status Notification"
+                                        : "KYC Approved"}
                                   </h4>
                                   <p className="text-sm text-muted-foreground">
                                     {item.description}
@@ -922,7 +913,7 @@ const Whitepaper = () => {
 
             {/* Download Section */}
             <section className="mb-12">
-              <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+              <Card className="bg-accent border-primary/20">
                 <CardContent className="text-center py-12">
                   <h3 className="text-2xl font-bold mb-4">
                     {currentContent.getFullWhitepaper.title}
@@ -933,7 +924,7 @@ const Whitepaper = () => {
                   <div className="flex justify-center gap-4">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-blue-500 to-green-500"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Download className="w-5 h-5 mr-2" />
                       {currentContent.getFullWhitepaper.downloadFull}
