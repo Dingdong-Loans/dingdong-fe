@@ -7,10 +7,10 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">DD</span>
-              </div>
-              <span className="font-bold text-lg">Dingdong Loans</span>
+              </div> */}
+              <span className="font-bold text-lg">Dingdong <span className="text-primary">Loans</span></span>
             </div>
             <p className="text-muted-foreground text-sm">
               Platform pinjaman untuk UMKM dengan jaminan crypto yang aman dan
@@ -23,7 +23,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link
-                  to="#"
+                  to="/apply"
                   className="hover:text-foreground transition-colors"
                 >
                   Pinjaman IDRX
@@ -31,7 +31,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="#"
+                  to="/manage-collateral"
                   className="hover:text-foreground transition-colors"
                 >
                   Jaminan Crypto
@@ -126,7 +126,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 Dingdong Loans. All rights reserved.</p>
+          <p>&copy; 2025 Dingdong Loans. All rights reserved.</p>
         </div>
       </div>
     </footer>

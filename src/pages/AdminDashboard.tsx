@@ -19,6 +19,7 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Tabs,
@@ -84,6 +85,10 @@ const AdminDashboard = () => {
   const [newLtv, setNewLtv] = useState('');
   const [poolAction, setPoolAction] = useState({ type: '', asset: '', amount: '' });
 
+  // State untuk dialog konfirmasi likuidasi
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [loanToLiquidate, setLoanToLiquidate] = useState<string | null>(null);
+
   // --- Computed Values ---
   const totalPoolValue = liquidityPool.reduce((sum, asset) => sum + asset.amount * asset.rate, 0);
   const selectedAssetForLtv = collateralAssets.find(a => a.symbol === selectedLtvAsset);
@@ -147,7 +152,9 @@ const AdminDashboard = () => {
   };
 
   const handleLiquidate = (loanId: string) => {
+    console.log(`Melakukan likuidasi untuk pinjaman: ${loanId}`);
     toast({ title: "Likuidasi Berhasil", description: `Pinjaman ${loanId} telah berhasil dilikuidasi.` });
+    setIsConfirmDialogOpen(false); // Tutup dialog setelah likuidasi
   };
 
   const handleWithdrawLiquidated = () => {
@@ -215,7 +222,18 @@ const AdminDashboard = () => {
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-500" />Manajemen Likuiditas & Likuidasi</CardTitle><CardDescription>Kelola likuiditas pool dan lakukan tindakan likuidasi.</CardDescription></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div><h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3><Table><TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>{undercollateralizedLoans.map(loan => (<TableRow key={loan.id} className="text-red-600"><TableCell className="font-medium">{loan.userName}</TableCell><TableCell className="font-mono">{loan.healthFactor}</TableCell><TableCell className="text-right"><Button size="sm" variant="destructive" onClick={() => handleLiquidate(loan.id)}>Lakukan Likuidasi</Button></TableCell></TableRow>))}</TableBody></Table></div>
+              <div><h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3><Table><TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>{undercollateralizedLoans.map(loan => (<TableRow key={loan.id} className="text-red-600"><TableCell className="font-medium">{loan.userName}</TableCell><TableCell className="font-mono">{loan.healthFactor}</TableCell><TableCell className="text-right">
+                <Button
+                  size="sm"
+                  className="bg-foreground text-background hover:bg-foreground/80" // Ubah warna di sini
+                  onClick={() => {
+                    setLoanToLiquidate(loan.id);
+                    setIsConfirmDialogOpen(true);
+                  }}
+                >
+                  Likuidasi
+                </Button>
+              </TableCell></TableRow>))}</TableBody></Table></div>
               <div className="space-y-4">
                 <div><h3 className="font-semibold mb-2">Pool Likuiditas</h3>
                   <Card className="bg-muted"><CardContent className="pt-6">
@@ -243,6 +261,34 @@ const AdminDashboard = () => {
       </main>
 
       <Footer />
+
+      {/* Dialog Konfirmasi Likuidasi */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Likuidasi Pinjaman</DialogTitle>
+            <DialogDescription>
+              Anda akan melakukan likuidasi untuk pinjaman <span className="font-bold">{loanToLiquidate}</span>.
+              Tindakan ini tidak dapat dibatalkan. Pastikan Anda memahami risikonya.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Batalkan</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (loanToLiquidate) {
+                  handleLiquidate(loanToLiquidate);
+                }
+              }}
+            >
+              Konfirmasi Likuidasi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

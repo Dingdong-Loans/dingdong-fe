@@ -96,7 +96,7 @@ const Dashboard = () => {
     { name: "Solana", value: "Rp 1.500.000.000" },
   ];
 
-  const totalCollateralValue = 125000000;
+  const totalCollateralValue = 120000000;
   const totalOutstandingLoans = activeLoans
     .filter(loan => loan.status === 'active')
     .reduce((acc, loan) => acc + parseFloat(loan.size.replace(/,/g, '')), 0);
@@ -104,8 +104,8 @@ const Dashboard = () => {
   const healthFactor = totalOutstandingLoans > 0 ? totalCollateralValue / totalOutstandingLoans : 2.5;
 
   const getHealthFactorHslColor = (factor: number) => {
-    if (factor < 0.5) return 'hsl(var(--destructive))';
-    if (factor === 0.5) return 'hsl(48 96% 59%)'; // Yellow
+    if (factor < 1) return 'hsl(var(--destructive))';
+    if (factor === 1) return 'hsl(48 96% 59%)'; // Yellow
     return 'hsl(var(--primary))';
   };
 
@@ -175,7 +175,7 @@ const Dashboard = () => {
                         <CardTitle className="text-sm font-medium">Total Jaminan Aktif</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold">Rp 125,000,000</p>
+                          <p className="text-2xl font-bold">{totalCollateralValue.toLocaleString('id-ID')}</p>
                         <p className="text-xs text-muted-foreground">+5.2% dari bulan lalu</p>
                       </CardContent>
                     </Card>
@@ -221,7 +221,7 @@ const Dashboard = () => {
                           <CardContent className="p-0 flex justify-between items-stretch">
                             <div className="p-4 flex-1 flex items-center justify-between min-w-0">
                               <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-md flex-shrink-0 ${loan.status === 'inactive' ? 'bg-[#48524A]' : 'bg-gray-200'}`} />
+                                {/* <div className={`w-12 h-12 rounded-md flex-shrink-0 ${loan.status === 'inactive' ? 'bg-[#48524A]' : 'bg-gray-200'}`} /> */}
                                 <div className="min-w-0">
                                   <p className="font-bold truncate">{loan.id}</p>
                                   <p className={`text-sm ${loan.status === 'inactive' ? 'text-gray-400' : 'text-muted-foreground'}`}>Sisa: Rp {loan.size}</p>
@@ -229,9 +229,9 @@ const Dashboard = () => {
                               </div>
                               <div className="text-right ml-4">
                                 {loan.status === 'active' ? (
-                                  <Badge className="bg-primary/20 text-primary border-primary/30">Aktif</Badge>
+                                  <Badge className="bg-primary/20 text-primary border-primary/30 hover:text-white">Aktif</Badge>
                                 ) : (
-                                  <Badge className="bg-muted text-muted-foreground">Non-aktif</Badge>
+                                  <Badge className="bg-muted text-muted-foreground hover:text-white">Non-aktif</Badge>
                                 )}
                               </div>
                             </div>
@@ -308,7 +308,7 @@ const Dashboard = () => {
                           {healthFactor.toFixed(2)}
                         </p>
                         <p className="text-sm text-gray-300 mt-1">
-                          Status: {healthFactor > 0.5 ? 'Aman' : 'Berisiko'}
+                          Status: {healthFactor > 1 ? 'Aman' : 'Berisiko'}
                         </p>
                       </div>
                     </CardContent>

@@ -13,7 +13,7 @@ const FAQ = () => {
     },
     {
       question: "Bagaimana cara kerja platform ini?",
-      answer: "Prosesnya sederhana: 1) Anda melakukan verifikasi identitas (KYC). 2) Anda menyetorkan aset crypto (seperti Bitcoin atau Ethereum) sebagai jaminan. 3) Anda dapat langsung mengajukan pinjaman IDRX hingga batas tertentu dari nilai jaminan Anda. 4) Setelah pinjaman dilunasi, jaminan crypto Anda dapat ditarik kembali sepenuhnya."
+      answer: "Prosesnya sederhana: 1) Anda menyetorkan aset crypto (seperti Bitcoin atau Ethereum) sebagai jaminan. 2) Anda dapat langsung mengajukan pinjaman IDRX hingga batas tertentu dari nilai jaminan Anda. 3) Setelah pinjaman dilunasi, jaminan crypto Anda dapat ditarik kembali sepenuhnya."
     },
     {
       question: "Apakah platform ini aman digunakan?",

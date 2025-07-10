@@ -51,20 +51,20 @@ const Navbar = () => {
     { name: "FAQ", path: "/faq" },
     { name: "Tentang Kami", path: "/about" },
     { name: "Whitepaper", path: "/whitepaper" },
-    { name: "Admin Dashboard", path: "/admindashboard" }
+    // { name: "Admin Dashboard", path: "/admindashboard" }
     // { name: "Syarat & Ketentuan", path: "/terms" },
   ];
 
   return (
     <header className="bg-white">
-      <nav className="container mx-auto px-5 h-20 flex items-center justify-center">
+      <nav className="container mx-auto px-20 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-foreground">
-          Dingdong Loans
+          Dingdong <span className="text-primary">Loans</span>
         </Link>
 
         {/* Navigation Links */}
-        <div className="hidden md:flex items-center space-x-2 bg-white p-1 rounded-md">
+        <div className=" md:flex items-center space-x-1 bg-muted p-2 rounded-md">
           {navLinks.map((link) => (
             <NavLink
               key={link.name}

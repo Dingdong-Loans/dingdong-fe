@@ -30,8 +30,8 @@ const ManageCollateral = () => {
 
   // Data Mockup
   const availableCollateral = [
-    { type: 'bitcoin', symbol: 'BTC', amount: 0.25, valueUSD: 10500 },
-    { type: 'ethereum', symbol: 'ETH', amount: 0.8, valueUSD: 2000 },
+    { type: 'bitcoin', symbol: 'BTC', amount: 0.25, valueIDR: 100000000 },
+    { type: 'ethereum', symbol: 'ETH', amount: 0.8, valueIDR: 30000000 },
   ];
 
   const transactionHistory = [
@@ -41,10 +41,10 @@ const ManageCollateral = () => {
   ];
 
   const cryptoRates = {
-    bitcoin: 42000,
-    ethereum: 2500,
-    usdt: 1,
-    usdc: 1
+    bitcoin: 1700000000,
+    ethereum: 45000000,
+    usdt: 16000,
+    usdc: 16000
   };
 
   const copyAddress = () => {
@@ -207,14 +207,14 @@ const ManageCollateral = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${asset.valueUSD.toLocaleString('en-US')}</p>
+                      <p className="font-medium">Rp {asset.valueIDR.toLocaleString('en-US')}</p>
                     </div>
                   </div>
                 ))}
                 <div className="border-t pt-4 mt-4 text-center">
                     <p className="text-sm font-medium">Total Nilai Jaminan</p>
                     <p className="text-2xl font-bold">
-                        ${availableCollateral.reduce((sum, asset) => sum + asset.valueUSD, 0).toLocaleString('en-US')}
+                        Rp {availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0).toLocaleString('en-US')}
                     </p>
                 </div>
               </CardContent>
