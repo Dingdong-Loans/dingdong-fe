@@ -17,7 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Tabs,
@@ -55,7 +56,7 @@ const AdminDashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // --- Mock Data ---
+  // --- State Management ---
   const [loanableAssets, setLoanableAssets] = useState([
     { id: 'asset-1', name: 'IDRX', symbol: 'IDRX', status: 'Active' },
   ]);
@@ -71,9 +72,26 @@ const AdminDashboard = () => {
     interestModel: 'Linear',
   });
 
+  const [liquidityPool, setLiquidityPool] = useState([
+    { id: 'pool-1', name: 'IDRX', amount: 15750000000, rate: 1 },
+    { id: 'pool-2', name: 'Bitcoin', amount: 1.5, rate: 1050000000 },
+    { id: 'pool-3', name: 'Ethereum', amount: 30, rate: 55000000 },
+  ]);
+
+  // State untuk form
+  const [newAsset, setNewAsset] = useState({ name: '', symbol: '' });
+  const [selectedLtvAsset, setSelectedLtvAsset] = useState('');
+  const [newLtv, setNewLtv] = useState('');
+  const [poolAction, setPoolAction] = useState({ type: '', asset: '', amount: '' });
+
+  // --- Computed Values ---
+  const totalPoolValue = liquidityPool.reduce((sum, asset) => sum + asset.amount * asset.rate, 0);
+  const selectedAssetForLtv = collateralAssets.find(a => a.symbol === selectedLtvAsset);
+
+  // --- Mock Data (statis) ---
   const undercollateralizedLoans = [
-    { id: 'LOAN-101', userName: 'Budi Santoso', healthFactor: 1.15 },
-    { id: 'LOAN-102', userName: 'Citra Lestari', healthFactor: 1.05 },
+    { id: 'LOAN-101', userName: 'Budi Santoso', healthFactor: 0.5 },
+    { id: 'LOAN-102', userName: 'Citra Lestari', healthFactor: 0.4 },
   ];
 
   const liquidatedFunds = {
@@ -82,56 +100,64 @@ const AdminDashboard = () => {
   };
 
   // --- Handler Functions ---
-  const handleLtvChange = (symbol: string, value: string) => {
-    setCollateralAssets(prevAssets =>
-      prevAssets.map(asset =>
-        asset.symbol === symbol ? { ...asset, ltv: value } : asset
-      )
-    );
+  const handleAddAsset = (type: 'collateral' | 'loanable') => {
+    if (!newAsset.name || !newAsset.symbol) {
+      toast({ title: "Error", description: "Nama dan Simbol aset tidak boleh kosong.", variant: "destructive" });
+      return;
+    }
+    const newEntry = { id: `new-${Date.now()}`, ...newAsset, status: 'Active', ...(type === 'collateral' && { ltv: '0' }) };
+    if (type === 'collateral') {
+      setCollateralAssets(prev => [...prev, newEntry]);
+    } else {
+      setLoanableAssets(prev => [...prev, newEntry]);
+    }
+    toast({ title: "Aset Ditambahkan", description: `Aset ${newAsset.name} telah berhasil ditambahkan.` });
+    setNewAsset({ name: '', symbol: '' }); // Reset form
   };
 
-  const handleSaveAssetParam = (symbol: string) => {
+  const handleSaveAssetParam = () => {
+    if (!selectedLtvAsset || !newLtv) {
+      toast({ title: "Error", description: "Pilih aset dan masukkan nilai LTV baru.", variant: "destructive" });
+      return;
+    }
+    setCollateralAssets(prevAssets =>
+      prevAssets.map(asset =>
+        asset.symbol === selectedLtvAsset ? { ...asset, ltv: newLtv } : asset
+      )
+    );
     toast({
       title: "Parameter Aset Disimpan",
-      description: `Parameter LTV untuk ${symbol} telah berhasil diperbarui.`,
+      description: `Parameter LTV untuk ${selectedLtvAsset} telah berhasil diperbarui ke ${newLtv}%.`,
     });
+    setNewLtv('');
   };
 
   const handleSaveGlobalParams = () => {
-    toast({
-      title: "Parameter Global Disimpan",
-      description: `Model bunga dan penalti likuidasi telah diperbarui.`,
-    });
+    toast({ title: "Parameter Global Disimpan", description: `Model bunga dan penalti likuidasi telah diperbarui.` });
+  };
+
+  const handlePoolAction = () => {
+    if (!poolAction.asset || !poolAction.amount) {
+      toast({ title: "Error", description: "Pilih aset dan masukkan jumlah.", variant: "destructive" });
+      return;
+    }
+    const actionText = poolAction.type === 'add' ? 'ditambahkan' : 'ditarik';
+    toast({ title: `Likuiditas Berhasil Diperbarui`, description: `${poolAction.amount} ${poolAction.asset} telah ${actionText} dari pool.` });
+    setPoolAction({ type: '', asset: '', amount: '' }); // Reset
   };
 
   const handleLiquidate = (loanId: string) => {
-    toast({
-      title: "Likuidasi Berhasil",
-      description: `Pinjaman ${loanId} telah berhasil dilikuidasi.`,
-    });
+    toast({ title: "Likuidasi Berhasil", description: `Pinjaman ${loanId} telah berhasil dilikuidasi.` });
   };
 
   const handleWithdrawLiquidated = () => {
-    toast({
-      title: "Penarikan Berhasil",
-      description: `Dana hasil likuidasi sebesar ${liquidatedFunds.amount.toLocaleString()} ${liquidatedFunds.asset} telah ditarik.`,
-    });
+    toast({ title: "Penarikan Berhasil", description: `Dana hasil likuidasi telah ditarik.` });
   };
 
   // --- Render ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <SkeletonLoader type="card" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-            <SkeletonLoader type="form" />
-            <SkeletonLoader type="form" />
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <div className="min-h-screen bg-background"><Navbar /><main className="container mx-auto px-4 py-8"><SkeletonLoader type="card" /><div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8"><SkeletonLoader type="form" /><SkeletonLoader type="form" /></div></main><Footer /></div>
     );
   }
 
@@ -140,165 +166,76 @@ const AdminDashboard = () => {
       <Navbar />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Admin Control Panel
-          </h1>
-          <p className="text-muted-foreground">
-            Kelola aset, parameter pinjaman, dan fungsi kritis protokol.
-          </p>
-        </div>
+        <div className="mb-8"><h1 className="text-4xl font-bold text-foreground mb-2">Admin Control Panel</h1><p className="text-muted-foreground">Kelola aset, parameter pinjaman, dan fungsi kritis protokol.</p></div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Asset Management */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Manajemen Aset
-              </CardTitle>
-              <CardDescription>
-                Atur aset yang dapat dipinjamkan dan diterima sebagai jaminan.
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Manajemen Aset</CardTitle><CardDescription>Atur aset yang dapat dipinjamkan dan diterima sebagai jaminan.</CardDescription></CardHeader>
             <CardContent>
               <Tabs defaultValue="collateral">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="collateral">Aset Jaminan</TabsTrigger>
-                  <TabsTrigger value="lendable">Aset Pinjaman</TabsTrigger>
-                </TabsList>
+                <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="collateral">Aset Jaminan</TabsTrigger><TabsTrigger value="lendable">Aset Pinjaman</TabsTrigger></TabsList>
                 <TabsContent value="collateral" className="mt-4">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {collateralAssets.map(asset => (
-                        <TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>
-                      ))}
-                    </TableBody>
+                  <Table><TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                    <TableBody>{collateralAssets.map(asset => (<TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>))}</TableBody>
                   </Table>
                   <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" /> Tambah Aset Jaminan</Button></DialogTrigger>
-                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Jaminan Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Nama Aset</Label><Input placeholder="Contoh: Bitcoin" /></div><div className="space-y-2"><Label>Simbol</Label><Input placeholder="Contoh: BTC" /></div></div><DialogFooter><Button variant="outline">Batal</Button><Button>Simpan</Button></DialogFooter></DialogContent>
+                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Jaminan Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label htmlFor="collateral-name">Nama Aset</Label><Input id="collateral-name" placeholder="Contoh: Bitcoin" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="collateral-symbol">Simbol</Label><Input id="collateral-symbol" placeholder="Contoh: BTC" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={() => handleAddAsset('collateral')}>Simpan</Button></DialogClose></DialogFooter></DialogContent>
                   </Dialog>
                 </TabsContent>
                 <TabsContent value="lendable" className="mt-4">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {loanableAssets.map(asset => (
-                        <TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>
-                      ))}
-                    </TableBody>
+                  <Table><TableHeader><TableRow><TableHead>Aset</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                    <TableBody>{loanableAssets.map(asset => (<TableRow key={asset.id}><TableCell>{asset.name} ({asset.symbol})</TableCell><TableCell>{asset.status}</TableCell><TableCell className="text-right"><Button size="sm" variant="ghost"><Trash2 className="w-4 h-4" /></Button></TableCell></TableRow>))}</TableBody>
                   </Table>
                   <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" /> Tambah Aset Pinjaman</Button></DialogTrigger>
-                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Nama Aset</Label><Input placeholder="Contoh: Rupiah Token" /></div><div className="space-y-2"><Label>Simbol</Label><Input placeholder="Contoh: IDRX" /></div></div><DialogFooter><Button variant="outline">Batal</Button><Button>Simpan</Button></DialogFooter></DialogContent>
+                    <DialogContent><DialogHeader><DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label htmlFor="loan-name">Nama Aset</Label><Input id="loan-name" placeholder="Contoh: Rupiah Token" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="loan-symbol">Simbol</Label><Input id="loan-symbol" placeholder="Contoh: IDRX" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={() => handleAddAsset('loanable')}>Simpan</Button></DialogClose></DialogFooter></DialogContent>
                   </Dialog>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
 
-          {/* ========== KODE PARAMETER PINJAMAN YANG DIPERBARUI ========== */}
+          {/* Loan Parameters */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Parameter Pinjaman
-              </CardTitle>
-              <CardDescription>
-                Atur parameter global dan LTV spesifik untuk setiap aset jaminan.
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" />Parameter Pinjaman</CardTitle><CardDescription>Atur parameter global dan LTV spesifik untuk setiap aset jaminan.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2 text-base">Parameter Global</h3>
-                <div className="p-4 rounded-lg bg-muted space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="interest-model">Model Bunga</Label>
-                      <Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}>
-                        <SelectTrigger id="interest-model"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Linear">Linear</SelectItem>
-                          <SelectItem value="Majemuk">Majemuk</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label>
-                      <Input id="liq-penalty" value={globalParams.liquidationPenalty} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value })} />
-                    </div>
+              <div><h3 className="font-semibold mb-2 text-base">Parameter Global</h3><div className="p-4 rounded-lg bg-muted space-y-4"><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="interest-model">Model Bunga</Label><Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}><SelectTrigger id="interest-model"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Linear">Linear</SelectItem><SelectItem value="Majemuk">Majemuk</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label><Input id="liq-penalty" value={globalParams.liquidationPenalty} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value })} /></div></div><Button className="w-full text-white" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button></div></div>
+              <div><h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3><div className="space-y-3 p-4 rounded-lg bg-muted"><div className="space-y-2"><Label>Pilih Aset</Label><Select onValueChange={setSelectedLtvAsset}><SelectTrigger><SelectValue placeholder="Pilih aset untuk diubah..." /></SelectTrigger><SelectContent>{collateralAssets.map(asset => (<SelectItem key={asset.symbol} value={asset.symbol}>{asset.name} ({asset.symbol})</SelectItem>))}</SelectContent></Select></div>
+                {selectedAssetForLtv && (
+                  <div className="space-y-4 pt-2">
+                    <p className="text-sm">LTV saat ini untuk {selectedAssetForLtv.name}: <span className="font-bold">{selectedAssetForLtv.ltv}%</span></p>
+                    <div className="flex items-center gap-2"><Label htmlFor="new-ltv" className="whitespace-nowrap">LTV Baru (%):</Label><Input id="new-ltv" placeholder="Contoh: 75" value={newLtv} onChange={(e) => setNewLtv(e.target.value)} /><Button size="sm" className="h-9" onClick={handleSaveAssetParam}>Simpan</Button></div>
                   </div>
-                  <Button className="w-full" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3>
-                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                  {collateralAssets.map(asset => (
-                    <Card key={asset.symbol} className="bg-background">
-                      <CardContent className="p-3">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor={`ltv-${asset.symbol}`} className="font-semibold">{asset.name} ({asset.symbol})</Label>
-                          <div className="flex items-center gap-2 w-1/2">
-                            <Input id={`ltv-${asset.symbol}`} className="h-8" value={asset.ltv} onChange={(e) => handleLtvChange(asset.symbol, e.target.value)} />
-                            <span className="text-muted-foreground">%</span>
-                            <Button size="sm" className="h-8" onClick={() => handleSaveAssetParam(asset.symbol)}>Simpan</Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+                )}
+              </div></div>
             </CardContent>
           </Card>
 
           {/* Liquidity and Liquidation Management */}
           <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Manajemen Likuiditas & Likuidasi
-              </CardTitle>
-              <CardDescription>
-                Kelola likuiditas pool dan lakukan tindakan likuidasi.
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-500" />Manajemen Likuiditas & Likuidasi</CardTitle><CardDescription>Kelola likuiditas pool dan lakukan tindakan likuidasi.</CardDescription></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3>
-                <Table>
-                  <TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {undercollateralizedLoans.map(loan => (
-                      <TableRow key={loan.id} className="text-red-600">
-                        <TableCell className="font-medium">{loan.userName}</TableCell>
-                        <TableCell className="font-mono">{loan.healthFactor}</TableCell>
-                        <TableCell className="text-right"><Button size="sm" variant="destructive" onClick={() => handleLiquidate(loan.id)}>Lakukan Likuidasi</Button></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
+              <div><h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3><Table><TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>{undercollateralizedLoans.map(loan => (<TableRow key={loan.id} className="text-red-600"><TableCell className="font-medium">{loan.userName}</TableCell><TableCell className="font-mono">{loan.healthFactor}</TableCell><TableCell className="text-right"><Button size="sm" variant="destructive" onClick={() => handleLiquidate(loan.id)}>Lakukan Likuidasi</Button></TableCell></TableRow>))}</TableBody></Table></div>
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Pool Likuiditas</h3>
+                <div><h3 className="font-semibold mb-2">Pool Likuiditas</h3>
                   <Card className="bg-muted"><CardContent className="pt-6">
-                    <div className="flex justify-between items-center"><p className="text-muted-foreground">Total Likuiditas IDRX</p><p className="text-xl font-bold">Rp 15,750,000,000</p></div>
-                    <div className="flex gap-2 mt-4"><Button className="w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah</Button><Button className="w-full" variant="outline"><MoveDownLeft className="w-4 h-4 mr-2" />Tarik</Button></div>
-                  </CardContent></Card>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Aset Hasil Likuidasi</h3>
-                  <Card className="bg-muted"><CardContent className="pt-6">
-                    <div className="flex justify-between items-center">
-                      <div><p className="text-muted-foreground">Dana Tersedia</p><p className="text-xl font-bold">Rp {liquidatedFunds.amount.toLocaleString()}</p></div>
-                      <Button onClick={handleWithdrawLiquidated}><ChevronsRight className="w-4 h-4 mr-2" />Tarik Dana</Button>
+                    <div className="space-y-1 mb-4"><p className="text-muted-foreground">Total Nilai Likuiditas</p><p className="text-2xl font-bold">Rp {totalPoolValue.toLocaleString('id-ID')}</p></div>
+                    <div className="space-y-2 border-t pt-4">
+                      {liquidityPool.map(asset => (
+                        <div key={asset.id} className="flex justify-between items-center text-sm"><span className="text-muted-foreground">{asset.name}</span><div className="text-right"><p className="font-mono">{asset.amount.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">≈ Rp {(asset.amount * asset.rate).toLocaleString('id-ID')}</p></div></div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Dialog><DialogTrigger asChild><Button className="w-full text-white" onClick={() => setPoolAction({ type: 'add', asset: '', amount: '' })}><PlusCircle className="w-4 h-4 mr-2 text-white" />Tambah</Button></DialogTrigger>
+                        <DialogContent><DialogHeader><DialogTitle>Tambah Likuiditas ke Pool</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction}>Tambah</Button></DialogClose></DialogFooter></DialogContent>
+                      </Dialog>
+                      <Dialog><DialogTrigger asChild><Button className="w-full" variant="outline" onClick={() => setPoolAction({ type: 'withdraw', asset: '', amount: '' })}><MoveDownLeft className="w-4 h-4 mr-2" />Tarik</Button></DialogTrigger>
+                        <DialogContent><DialogHeader><DialogTitle>Tarik Likuiditas dari Pool</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction} variant="destructive">Tarik</Button></DialogClose></DialogFooter></DialogContent>
+                      </Dialog>
                     </div>
                   </CardContent></Card>
                 </div>
+                <div><h3 className="font-semibold mb-2">Aset Hasil Likuidasi</h3><Card className="bg-muted"><CardContent className="pt-6"><div className="flex justify-between items-center"><div><p className="text-muted-foreground">Dana Tersedia</p><p className="text-xl font-bold">Rp {liquidatedFunds.amount.toLocaleString()}</p></div><Button className="text-white" onClick={handleWithdrawLiquidated}><ChevronsRight className="w-4 h-4 mr-2 text-white" />Tarik Dana</Button></div></CardContent></Card></div>
               </div>
             </CardContent>
           </Card>

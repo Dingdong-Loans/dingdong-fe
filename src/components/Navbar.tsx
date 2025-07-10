@@ -57,7 +57,7 @@ const Navbar = () => {
 
   return (
     <header className="bg-white">
-      <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
+      <nav className="container mx-auto px-5 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-foreground">
           Dingdong Loans
@@ -87,7 +87,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-3">
           {!isConnected ? (
             <Button
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              className="bg-primary hover:bg-primary/90 text-white font-semibold"
               onClick={handleConnectWallet}
             >
               Connect Wallet

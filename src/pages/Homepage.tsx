@@ -15,7 +15,7 @@ const Homepage = () => {
         className="relative w-full bg-no-repeat bg-cover bg-center"
         style={{ backgroundImage: "url('/images/hero-background.jpg')" }}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-20">
           <div className="grid lg:grid-cols-2 min-h-[500px] md:min-h-[600px] items-center">
             {/* Kolom Kiri: Konten Teks dengan penyesuaian padding */}
             <div className="text-left space-y-6 lg:pr-10">

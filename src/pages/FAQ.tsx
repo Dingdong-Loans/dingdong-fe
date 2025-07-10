@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,7 +118,7 @@ const FAQ = () => {
   const filteredFAQ = faqCategories.map(category => ({
     ...category,
     questions: category.questions.filter(
-      q => 
+      q =>
         q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
         q.answer.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -128,7 +127,7 @@ const FAQ = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-12">
         {/* Header Section */}
         <div className="text-center mb-12">
@@ -136,13 +135,13 @@ const FAQ = () => {
             Frequently Asked Questions
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Temukan jawaban untuk pertanyaan yang paling sering ditanyakan tentang Dingdong Loans. 
+            Temukan jawaban untuk pertanyaan yang paling sering ditanyakan tentang Dingdong Loans.
             Jika Anda tidak menemukan jawaban yang dicari, jangan ragu untuk menghubungi tim support kami.
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12">
+        {/* <div className="max-w-2xl mx-auto mb-12">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -152,7 +151,7 @@ const FAQ = () => {
               className="pl-10"
             />
           </div>
-        </div>
+        </div> */}
 
         {/* FAQ Content */}
         <div className="max-w-4xl mx-auto">
@@ -191,58 +190,58 @@ const FAQ = () => {
 
         {/* Contact Support Section */}
         <div className="max-w-4xl mx-auto mt-16">
-          <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+          <Card className="bg-foreground text-background">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Masih Ada Pertanyaan?</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-background/80">
                 Tim support kami siap membantu Anda 24/7
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <MessageCircle className="h-6 w-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <MessageCircle className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">Live Chat</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-background/70 mb-3">
                     Chat langsung dengan tim support
                   </p>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm">
                     Mulai Chat
                   </Button>
                 </div>
 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Phone className="h-6 w-6 text-green-600" />
+                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Phone className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">WhatsApp</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-background/70 mb-3">
                     +62 812-3456-7890
                   </p>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm">
                     Hubungi WhatsApp
                   </Button>
                 </div>
 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Mail className="h-6 w-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Mail className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">Email</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-background/70 mb-3">
                     support@dingdongloans.com
                   </p>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm">
                     Kirim Email
                   </Button>
                 </div>
               </div>
 
               <div className="text-center mt-8">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Jam Operasional:</strong> Senin - Minggu, 24 jam | 
+                <p className="text-sm text-background/70">
+                  <strong>Jam Operasional:</strong> Senin - Minggu, 24 jam |
                   <strong> Response Time:</strong> Maksimal 2 jam
                 </p>
               </div>
