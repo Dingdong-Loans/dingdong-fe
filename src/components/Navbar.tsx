@@ -57,7 +57,7 @@ const Navbar = () => {
 
   return (
     <header className="bg-white">
-      <nav className="container mx-auto px-5 h-20 flex items-center justify-between">
+      <nav className="container mx-auto px-5 h-20 flex items-center justify-center">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-foreground">
           Dingdong Loans

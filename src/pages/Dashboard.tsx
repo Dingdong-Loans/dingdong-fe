@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, CreditCard, ArrowRight, Info } from "lucide-react";
+import { PlusCircle, CreditCard, ArrowRight, Info, Wallet, Banknote, HandCoins } from "lucide-react";
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import {
   Dialog,
@@ -101,7 +101,7 @@ const Dashboard = () => {
     .filter(loan => loan.status === 'active')
     .reduce((acc, loan) => acc + parseFloat(loan.size.replace(/,/g, '')), 0);
 
-  const healthFactor = totalOutstandingLoans > 0 ? totalCollateralValue / totalOutstandingLoans : 2;
+  const healthFactor = totalOutstandingLoans > 0 ? totalCollateralValue / totalOutstandingLoans : 2.5;
 
   const getHealthFactorHslColor = (factor: number) => {
     if (factor < 0.5) return 'hsl(var(--destructive))';
@@ -110,7 +110,6 @@ const Dashboard = () => {
   };
 
   const healthFactorColor = getHealthFactorHslColor(healthFactor);
-  const healthFactorData = [{ name: 'Health Factor', value: Math.min(healthFactor, 1), fill: healthFactorColor }];
 
   const handlePaymentClick = (e: React.MouseEvent, loan: any) => {
     e.stopPropagation();
@@ -170,9 +169,37 @@ const Dashboard = () => {
                   <SkeletonLoader type="stats_row" />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="border shadow-sm"><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Total Jaminan Aktif</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">Rp 125,000,000</p><p className="text-xs text-muted-foreground">+5.2% dari bulan lalu</p></CardContent></Card>
-                    <Card className="border shadow-sm"><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Sisa Pinjaman Aktif</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">Rp {totalOutstandingLoans.toLocaleString('id-ID')}</p><p className="text-xs text-muted-foreground">dari semua pinjaman</p></CardContent></Card>
-                    <Card className="border shadow-sm"><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Tersedia untuk Pinjam</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">Rp 75,000,000</p><p className="text-xs text-muted-foreground">Berdasarkan jaminan saat ini</p></CardContent></Card>
+                    <Card className="border shadow-sm">
+                      <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
+                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Total Jaminan Aktif</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">Rp 125,000,000</p>
+                        <p className="text-xs text-muted-foreground">+5.2% dari bulan lalu</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border shadow-sm">
+                      <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
+                        <Banknote className="h-5 w-5 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Sisa Pinjaman Aktif</CardTitle>
+
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">Rp {totalOutstandingLoans.toLocaleString('id-ID')}</p>
+                        <p className="text-xs text-muted-foreground">dari semua pinjaman</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border shadow-sm">
+                      <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
+                        <HandCoins className="h-5 w-5 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Tersedia untuk Pinjam</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">Rp 75,000,000</p>
+                        <p className="text-xs text-muted-foreground">Berdasarkan jaminan saat ini</p>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
@@ -251,16 +278,16 @@ const Dashboard = () => {
                       <CardTitle>Health Factor</CardTitle>
                       <p className="text-xs text-gray-300">Rasio nilai jaminan terhadap pinjaman</p>
                     </CardHeader>
-                    {/* Mengatur ukuran tetap pada CardContent */}
-                    <CardContent className="p-0 h-30 w-full mx-auto relative flex items-center justify-center">
+                    <CardContent className="p-0 h-40 w-full mx-auto relative flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <RadialBarChart
-                          data={healthFactorData}
-                          innerRadius="140%"
-                          outerRadius="170%"
-                          barSize={18}
+                          data={[{ name: 'Health Factor', value: healthFactor, fill: healthFactorColor }]}
+                          innerRadius="150%"
+                          outerRadius="180%"
+                          barSize={16}
                           startAngle={180}
                           endAngle={0}
+                          cx="50%"
                           cy="75%"
                         >
                           <PolarAngleAxis
@@ -276,7 +303,7 @@ const Dashboard = () => {
                           />
                         </RadialBarChart>
                       </ResponsiveContainer>
-                      <div className="absolute top-2/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                      <div className="absolute top-3/4 left-1/2 -translate-x-1/2 -translate-y-full text-center">
                         <p className="text-5xl font-bold" style={{ color: healthFactorColor }}>
                           {healthFactor.toFixed(2)}
                         </p>
