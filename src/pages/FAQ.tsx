@@ -48,8 +48,17 @@ const FAQ = () => {
         <div className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible className="w-full space-y-4">
             {mainFaqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-b-0 rounded-lg bg-white shadow-sm border border-gray-200/80">
-                <AccordionTrigger className="p-6 text-left font-semibold text-base hover:no-underline data-[state=open]:text-primary">
+              /* Perubahan 2: Menambahkan kelas Tailwind untuk mengubah border saat item akordion terbuka.
+                 - `data-[state=open]:border-primary` akan mengubah warna border menjadi warna primer.
+                 - `data-[state=open]:border-2` akan membuat border sedikit lebih tebal agar lebih terlihat.
+                 - `transition-colors` ditambahkan untuk memberikan efek transisi yang halus. */
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border-b-0 rounded-lg bg-white shadow-sm border border-gray-200/80 transition-colors data-[state=open]:border-primary data-[state=open]:border-2"
+              >
+                {/* Perubahan 1: Menghapus `data-[state=open]:text-primary` agar warna teks tidak berubah saat dibuka. */}
+                <AccordionTrigger className="p-6 text-left font-semibold text-base hover:no-underline data-[state=open]">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground pt-0 px-6 pb-6 leading-relaxed">
