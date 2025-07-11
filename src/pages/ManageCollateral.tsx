@@ -28,11 +28,11 @@ const ManageCollateral = () => {
 
   const depositAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
 
-  // Data Mockup
-  const availableCollateral = [
-    { type: 'bitcoin', symbol: 'BTC', amount: 0.25, valueIDR: 100000000 },
-    { type: 'ethereum', symbol: 'ETH', amount: 0.8, valueIDR: 30000000 },
-  ];
+  // --- PERUBAHAN 1: Data jaminan dipindahkan ke dalam state agar bisa diubah (reaktif) ---
+  const [availableCollateral, setAvailableCollateral] = useState([
+    { type: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', amount: 0.25, valueIDR: 250000000 },
+    { type: 'ethereum', symbol: 'ETH', name: 'Ethereum', amount: 0.8, valueIDR: 30000000 },
+  ]);
 
   const transactionHistory = [
     { id: 'TX001', date: '10 Jun 2024', type: 'Deposit', amount: '0.15 BTC', status: 'Selesai' },
@@ -41,8 +41,8 @@ const ManageCollateral = () => {
   ];
 
   const cryptoRates = {
-    bitcoin: 1700000000,
-    ethereum: 45000000,
+    bitcoin: 1000000000, // Harga per BTC
+    ethereum: 37500000,  // Harga per ETH
     usdt: 16000,
     usdc: 16000
   };
@@ -55,31 +55,90 @@ const ManageCollateral = () => {
     });
   };
 
+  // --- PERUBAHAN 1 (Lanjutan): Fungsi deposit sekarang memperbarui state jaminan ---
   const handleDeposit = () => {
     setLoading(true);
     setDepositStatus("pending");
     setTimeout(() => {
+      setAvailableCollateral(prevCollateral => {
+        const existingAssetIndex = prevCollateral.findIndex(asset => asset.type === depositCollateralType);
+        const amount = parseFloat(depositAmount);
+        const rate = cryptoRates[depositCollateralType as keyof typeof cryptoRates] || 0;
+
+        if (existingAssetIndex > -1) {
+          // Jika aset sudah ada, perbarui jumlah dan nilainya
+          const updatedCollateral = [...prevCollateral];
+          updatedCollateral[existingAssetIndex].amount += amount;
+          updatedCollateral[existingAssetIndex].valueIDR += amount * rate;
+          return updatedCollateral;
+        } else {
+          // Jika aset baru, tambahkan ke dalam daftar
+          const newAsset = {
+            type: depositCollateralType,
+            symbol: depositCollateralType.toUpperCase(),
+            name: depositCollateralType.charAt(0).toUpperCase() + depositCollateralType.slice(1),
+            amount: amount,
+            valueIDR: amount * rate
+          };
+          return [...prevCollateral, newAsset];
+        }
+      });
+
       setDepositStatus("completed");
       setLoading(false);
       toast({
         title: "Deposit Berhasil",
         description: `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`,
       });
+      // Reset form
+      setDepositAmount("");
+      setDepositCollateralType("");
     }, 2000);
   };
 
+  // --- PERUBAHAN 1 (Lanjutan): Fungsi penarikan sekarang memperbarui state jaminan ---
   const handleWithdrawal = () => {
     setLoading(true);
     setWithdrawalStatus("pending");
     setTimeout(() => {
+      setAvailableCollateral(prevCollateral => {
+        return prevCollateral.map(asset => {
+          if (asset.type === withdrawalCollateralType) {
+            const amountToWithdraw = parseFloat(withdrawalAmount);
+            const rate = cryptoRates[withdrawalCollateralType as keyof typeof cryptoRates] || 0;
+            return {
+              ...asset,
+              amount: asset.amount - amountToWithdraw,
+              valueIDR: asset.valueIDR - (amountToWithdraw * rate)
+            };
+          }
+          return asset;
+        }).filter(asset => asset.amount > 0); // Hapus aset jika jumlahnya 0
+      });
+
       setWithdrawalStatus("completed");
       setLoading(false);
       toast({
         title: "Penarikan Berhasil",
         description: `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`,
       });
+      // Reset form
+      setWithdrawalAmount("");
+      setWithdrawalCollateralType("");
     }, 2000);
   };
+
+  // --- PERUBAHAN 3: Fungsi baru untuk mengatur jumlah penarikan ke nilai maksimal ---
+  const handleSetMaxWithdrawal = () => {
+    const selectedAsset = availableCollateral.find(asset => asset.type === withdrawalCollateralType);
+    if (selectedAsset) {
+      setWithdrawalAmount(selectedAsset.amount.toString());
+    }
+  };
+
+  // --- PERUBAHAN 2: Nilai total dihitung secara dinamis dari state ---
+  const totalCollateralValue = availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,7 +223,7 @@ const ManageCollateral = () => {
                         <SelectContent>
                           {availableCollateral.map(asset => (
                             <SelectItem key={asset.type} value={asset.type}>
-                              {asset.symbol} - Tersedia: {asset.amount} {asset.symbol}
+                              {asset.name} - Tersedia: {asset.amount} {asset.symbol}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -172,7 +231,20 @@ const ManageCollateral = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="amount-withdraw">Jumlah</Label>
-                      <Input id="amount-withdraw" type="number" placeholder="0.001" value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} />
+                      {/* --- PERUBAHAN 3 (Lanjutan): Menambahkan div wrapper dan tombol Max --- */}
+                      <div className="relative">
+                        <Input id="amount-withdraw" type="number" placeholder="0.001" value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
+                          onClick={handleSetMaxWithdrawal}
+                          disabled={!withdrawalCollateralType}
+                        >
+                          Max
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
                       Penarikan akan mempengaruhi Health Factor pinjaman Anda. Pastikan Health Factor tetap di atas ambang batas aman.
@@ -186,7 +258,10 @@ const ManageCollateral = () => {
             </Tabs>
 
             {/* Collateral Summary */}
-            <Card>
+            {/* --- PERUBAHAN 1: Menjadikan Card sebagai flex container --- 
+    'flex flex-col' akan mengatur CardHeader dan CardContent secara vertikal. 
+    Ini adalah kunci agar CardContent bisa mengisi sisa ruang. */}
+            <Card className="flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Wallet className="w-5 h-5 mr-2" />
@@ -194,27 +269,37 @@ const ManageCollateral = () => {
                 </CardTitle>
                 <CardDescription>Total jaminan yang Anda miliki saat ini.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {availableCollateral.map(asset => (
-                  <div key={asset.type} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${asset.symbol === 'BTC' ? 'bg-orange-500' : 'bg-blue-500'}`}>
-                        <span className="text-white text-xs font-bold">{asset.symbol}</span>
+              {/* --- PERUBAHAN 2: Membuat CardContent mengisi sisa ruang ---
+              'flex-grow' membuat elemen ini mengambil semua ruang kosong yang tersedia.
+              'flex' dan 'flex-col' diperlukan agar 'mt-auto' pada elemen di dalamnya bisa berfungsi. */}
+              <CardContent className="flex flex-col flex-grow">
+                {/* Div ini untuk daftar aset, posisinya akan normal di bagian atas */}
+                <div className="space-y-2">
+                  {availableCollateral.map(asset => (
+                    <div key={asset.type} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${asset.symbol === 'BTC' ? 'bg-orange-500' : 'bg-gray-500'}`}>
+                          <span className="text-white text-xs font-bold">{asset.symbol}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{asset.name}</p>
+                          <p className="text-sm text-muted-foreground">{asset.amount} {asset.symbol}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{asset.type.charAt(0).toUpperCase() + asset.type.slice(1)}</p>
-                        <p className="text-sm text-muted-foreground">{asset.amount} {asset.symbol}</p>
+                      <div className="text-right">
+                        <p className="font-medium">Rp {asset.valueIDR.toLocaleString('id-ID')}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">Rp {asset.valueIDR.toLocaleString('en-US')}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="border-t pt-4 mt-4 text-center">
+                  ))}
+                </div>
+
+                {/* --- PERUBAHAN 3: 'mt-auto' pada div ini akan mendorongnya ke bawah ---
+                Karena parent-nya (CardContent) kini adalah flex container yang mengisi ruang, 
+                'mt-auto' akan bekerja dengan sempurna untuk menempatkan total nilai di bagian paling bawah. */}
+                <div className="border-t pt-4 mt-auto text-center">
                   <p className="text-sm font-medium">Total Nilai Jaminan</p>
                   <p className="text-2xl font-bold">
-                    Rp {availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0).toLocaleString('en-US')}
+                    Rp {totalCollateralValue.toLocaleString('id-ID')}
                   </p>
                 </div>
               </CardContent>

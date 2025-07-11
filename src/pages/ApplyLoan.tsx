@@ -151,7 +151,7 @@ const ApplyLoan = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle>Detail Pinjaman</CardTitle>
-                      <CardDescription>Isi form berikut untuk mengajukan pinjaman.</CardDescription>
+                      <CardDescription className="py-2">Isi form berikut untuk mengajukan pinjaman.</CardDescription>
                     </div>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="flex-shrink-0" onClick={() => setCurrentTutorialStepIndex(0)}>
