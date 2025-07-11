@@ -152,7 +152,7 @@ const Dashboard = () => {
     <>
       <div className="bg-background text-foreground min-h-screen">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-20 py-8">
           <div className="max-w-7xl mx-auto">
             {loading ? (
               <Skeleton className="h-10 w-1/2 mb-8" />
@@ -175,7 +175,7 @@ const Dashboard = () => {
                         <CardTitle className="text-sm font-medium">Total Jaminan Aktif</CardTitle>
                       </CardHeader>
                       <CardContent>
-                          <p className="text-2xl font-bold">{totalCollateralValue.toLocaleString('id-ID')}</p>
+                        <p className="text-2xl font-bold">Rp {totalCollateralValue.toLocaleString('id-ID')}</p>
                         <p className="text-xs text-muted-foreground">+5.2% dari bulan lalu</p>
                       </CardContent>
                     </Card>

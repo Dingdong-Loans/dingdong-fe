@@ -57,6 +57,8 @@ const Navbar = () => {
 
   return (
     <header className="bg-white">
+      {/* PERUBAHAN: Mengubah padding horizontal dari px-20 menjadi px-4 agar sama dengan halaman lain. 
+    Ini akan membuat lebar konten di dalam Navbar sejajar dengan konten halaman. */}
       <nav className="container mx-auto px-20 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-foreground">

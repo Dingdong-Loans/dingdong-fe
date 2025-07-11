@@ -473,7 +473,7 @@ const Whitepaper = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-20 py-8">
         {/* Language Toggle */}
         <div className="flex justify-end mb-6">
           <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
