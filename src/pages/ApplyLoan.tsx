@@ -51,6 +51,15 @@ const ApplyLoan = () => {
     setLoanAmount(formattedValue);
   };
 
+  const handleSetMaxLoan = () => {
+    // Ambil nilai maksimal pinjaman yang sudah tersedia
+    const maxAmount = maxLoanableIDRX;
+    // Format angka dengan pemisah ribuan (titik)
+    const formattedValue = new Intl.NumberFormat('id-ID').format(maxAmount);
+    // Set state loanAmount dengan nilai maksimal yang sudah diformat
+    setLoanAmount(formattedValue);
+  };
+
   const calculateRepayments = () => {
     // Gunakan nilai numerik yang sudah dibersihkan untuk kalkulasi
     const amount = numericLoanAmount || 0;
@@ -169,18 +178,36 @@ const ApplyLoan = () => {
                   </Card>
                   <div className="space-y-2">
                     <Label htmlFor="amount">Jumlah Pinjaman (IDRX)</Label>
-                    {/* --- PERUBAHAN 3: Input sekarang menggunakan fungsi handleLoanAmountChange --- */}
-                    <Input
-                      id="amount"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="ex. 50.000.000"
-                      value={loanAmount}
-                      onChange={handleLoanAmountChange}
-                      className={isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    />
-                    {isLoanAmountExceeded && (<Alert variant="destructive" className="mt-2 text-xs"><AlertCircle className="h-4 w-4" /><AlertDescription>Jumlah pinjaman melebihi batas maksimal.</AlertDescription></Alert>)}
+                    {/* Perubahan: Tambahkan div dengan posisi relatif untuk menempatkan tombol di dalam input */}
+                    <div className="relative">
+                      <Input
+                        id="amount"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="ex. 50.000.000"
+                        value={loanAmount}
+                        onChange={handleLoanAmountChange}
+                        className={isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500 pr-12" : "pr-12"}
+                      />
+                      {/* Perubahan: Tambahkan tombol "Max" di kanan input, terinspirasi dari halaman ManageCollateral */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
+                        onClick={handleSetMaxLoan}
+                      >
+                        Max
+                      </Button>
+                    </div>
+                    {isLoanAmountExceeded && (
+                      <Alert variant="destructive" className="mt-2 text-xs">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>Jumlah pinjaman melebihi batas maksimal.</AlertDescription>
+                      </Alert>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="duration">Jangka Waktu (Bulan)</Label>
                     <Select value={duration} onValueChange={setDuration}><SelectTrigger><SelectValue placeholder="Pilih jangka waktu" /></SelectTrigger><SelectContent><SelectItem value="6">6 Bulan</SelectItem><SelectItem value="12">12 Bulan</SelectItem><SelectItem value="18">18 Bulan</SelectItem><SelectItem value="24">24 Bulan</SelectItem></SelectContent></Select>

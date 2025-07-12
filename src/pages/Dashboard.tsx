@@ -49,7 +49,7 @@ const Dashboard = () => {
       size: "45,000,000",
       status: "active",
       monthlyPayment: "4,500,000",
-      interestRate: "8.5%",
+      interestRate: "1.5%",
       dueDate: "14 Desember 2024"
     },
     {
@@ -219,46 +219,52 @@ const Dashboard = () => {
                   {loading ? (
                     <div className="space-y-4"><SkeletonLoader type="loan_card" /><SkeletonLoader type="loan_card" /></div>
                   ) : (
-                    <div className="space-y-4">
-                      {activeLoans.map((loan) => (
-                        <Card
-                          key={loan.id}
-                          className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100`}
-                        >
-                          <CardContent className="p-0 flex justify-between items-stretch">
-                            <div className="p-4 flex-1 flex items-center justify-between min-w-0">
-                              <div className="flex items-center gap-4">
-                                {/* <div className={`w-12 h-12 rounded-md flex-shrink-0 ${loan.status === 'inactive' ? 'bg-[#48524A]' : 'bg-gray-200'}`} /> */}
-                                <div className="min-w-0">
-                                  <p className="font-bold truncate">{loan.id}</p>
-                                  <p className={`text-sm ${loan.status === 'inactive' ? 'text-gray-400' : 'text-muted-foreground'}`}>Sisa: Rp {loan.size}</p>
+                      <div className="space-y-5">       {/* jarak antara card*/}
+                        {activeLoans.map((loan) => (
+                          <Card
+                            key={loan.id}
+                            // Perubahan 2: Menyesuaikan efek hover agar latar belakang card menjadi abu-abu
+                            className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100`}
+                          >
+                            {/* Perubahan 1: Mengubah struktur CardContent agar sesuai dengan layout di gambar */}
+                            <CardContent className="p-4 flex  mb-3 flex-col md:flex-row justify-between items-center md:items-start space-y-4 md:space-y-0">
+                              {/* Bagian Kiri: Nama Pinjaman, Tanggal, dan Informasi Lainnya */}
+                              <div className="flex-1 flex flex-col min-w-0">
+                                {/* Judul dan sub-teks */}
+                                <div className="mb-4 space-y-1">
+                                  <p className="font-bold text-lg">{loan.id}</p>
+                                  <p className="text-sm text-muted-foreground">Dibuat: {loan.date}</p>
+                                  <p className="text-sm text-muted-foreground">Tenor: {loan.tenor}</p>
+                                </div>
+                                {/* Tombol Aksi */}
+                                <div className="flex space-x-2">
+                                  {loan.status === 'active' && (
+                                    <Button size="sm" className="bg-primary text-white hover:bg-primary/90" onClick={(e) => handlePaymentClick(e, loan)}>
+                                      Bayar Cicilan
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant="outline" onClick={(e) => handleDetailClick(e, loan)}>
+                                    Detail
+                                  </Button>
                                 </div>
                               </div>
-                              <div className="text-right ml-4">
+
+                              {/* Bagian Kanan: Jumlah dan Status */}
+                              <div className="flex-shrink-0 text-right">
+                                {/* Jumlah Pinjaman dan Sisa */}
+                                <p className="text-2xl font-bold">Rp {loan.amount}</p>
+                                <p className="text-sm text-muted-foreground mb-2">Sisa: Rp {loan.size}</p>
+                                {/* Badge Status */}
                                 {loan.status === 'active' ? (
                                   <Badge className="bg-primary/20 text-primary border-primary/30 hover:text-white">Aktif</Badge>
                                 ) : (
                                   <Badge className="bg-muted text-muted-foreground hover:text-white">Non-aktif</Badge>
                                 )}
                               </div>
-                            </div>
-
-                            <div className={`flex transition-all duration-300 ease-in-out w-0 group-hover:w-32`}>
-                              {loan.status === 'active' && (
-                                <Button variant="ghost" className="h-full flex-1 flex-col space-y-1 rounded-none text-muted-foreground bg-accent hover:bg-primary/90 " onClick={(e) => handlePaymentClick(e, loan)}>
-                                  <CreditCard className="w-5 h-5" />
-                                  <span className="text-xs">Bayar</span>
-                                </Button>
-                              )}
-                              <Button variant="ghost" className="h-full flex-1 flex-col space-y-1 rounded-none hover:bg-primary/90" onClick={(e) => handleDetailClick(e, loan)}>
-                                <Info className="w-5 h-5" />
-                                <span className="text-xs">Detail</span>
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                   )}
                 </div>
               </div>
@@ -378,7 +384,7 @@ const Dashboard = () => {
           <div className="space-y-3 py-4">
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Tanggal Pengajuan:</span><span className="font-medium">{selectedLoan?.date}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Jumlah Pinjaman:</span><span className="font-medium">Rp {selectedLoan?.amount}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sisa Pinjaman:</span><span className="font-medium">Rp {selectedLoan?.size}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sisa Hutang:</span><span className="font-medium">Rp {selectedLoan?.size}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Tenor:</span><span className="font-medium">{selectedLoan?.tenor}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Suku Bunga:</span><span className="font-medium">{selectedLoan?.interestRate}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Jatuh Tempo Berikutnya:</span><span className="font-medium">{selectedLoan?.dueDate}</span></div>

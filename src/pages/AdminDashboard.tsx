@@ -3,50 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Shield,
-  Settings,
-  PlusCircle,
-  Trash2,
-  AlertTriangle,
-  MoveDownLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger, } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { Shield, Settings, PlusCircle, Trash2, AlertTriangle, MoveDownLeft, ChevronsRight, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SkeletonLoader from "@/components/SkeletonLoader";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -92,7 +58,6 @@ const AdminDashboard = () => {
     { id: 'LOAN-102', userName: 'Citra Lestari', healthFactor: 0.4 },
   ]);
 
-  // --- PERUBAHAN 1: Mengubah 'liquidatedFunds' menjadi state untuk menampung info bank dan agar nilainya bisa diubah ---
   const [liquidatedFunds, setLiquidatedFunds] = useState({
     amount: 12500000,
     asset: 'IDRX',
@@ -103,8 +68,13 @@ const AdminDashboard = () => {
     }
   });
 
-  // --- PERUBAHAN 2: State baru untuk mengontrol dialog konfirmasi penarikan ---
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
+
+  const [withdrawalError, setWithdrawalError] = useState("");
+
+  // Perubahan 3: State baru untuk input jumlah penarikan dana likuidasi dan validasinya
+  const [liquidatedWithdrawalAmount, setLiquidatedWithdrawalAmount] = useState("");
+  const [liquidatedWithdrawalError, setLiquidatedWithdrawalError] = useState("");
 
   const selectedAssetForLtv = collateralAssets.find(a => a.symbol === selectedLtvAsset);
   const totalPoolValue = liquidityPool.reduce((sum, asset) => sum + asset.amount * asset.rate, 0);
@@ -160,9 +130,44 @@ const AdminDashboard = () => {
       toast({ title: "Error", description: "Pilih aset dan masukkan jumlah.", variant: "destructive" });
       return;
     }
+
+    const amount = parseFloat(poolAction.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Error", description: "Jumlah tidak valid.", variant: "destructive" });
+      return;
+    }
+
+    // Perubahan 2: Filter aset yang jumlahnya habis setelah penarikan
+    setLiquidityPool(prevPool => {
+      const newPool = [...prevPool];
+      const assetIndex = newPool.findIndex(a => a.name === poolAction.asset);
+
+      if (assetIndex > -1) {
+        if (poolAction.type === 'add') {
+          newPool[assetIndex].amount += amount;
+        } else if (poolAction.type === 'withdraw') {
+          if (newPool[assetIndex].amount < amount) {
+            toast({ title: "Gagal Menarik Likuiditas", description: "Jumlah melebihi saldo yang tersedia.", variant: "destructive" });
+            return prevPool;
+          }
+          newPool[assetIndex].amount -= amount;
+        }
+      }
+      // Perubahan 2: Filter aset dengan jumlah <= 0
+      return newPool.filter(asset => asset.amount > 0);
+    });
+
     const actionText = poolAction.type === 'add' ? 'ditambahkan' : 'ditarik';
     toast({ title: `Likuiditas Berhasil Diperbarui`, description: `${poolAction.amount} ${poolAction.asset} telah ${actionText} dari pool.` });
     setPoolAction({ type: '', asset: '', amount: '' });
+    setWithdrawalError("");
+  };
+
+  const handleMaxWithdrawal = () => {
+    const selectedAsset = liquidityPool.find(a => a.name === poolAction.asset);
+    if (selectedAsset) {
+      setPoolAction({ ...poolAction, amount: selectedAsset.amount.toString() });
+    }
   };
 
   const handleLiquidate = (loanId: string) => {
@@ -171,11 +176,29 @@ const AdminDashboard = () => {
     setIsConfirmDialogOpen(false);
   };
 
-  // --- PERUBAHAN 3: Fungsi penarikan dana diperbarui untuk mengubah state dan menutup dialog ---
+  // Perubahan 3: Handler untuk input penarikan dana likuidasi
+  const handleLiquidatedWithdrawalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const amount = parseFloat(e.target.value);
+    setLiquidatedWithdrawalAmount(e.target.value);
+
+    // Lakukan validasi
+    if (amount > liquidatedFunds.amount) {
+      setLiquidatedWithdrawalError(`Jumlah melebihi dana yang tersedia (Rp ${liquidatedFunds.amount.toLocaleString('id-ID')}).`);
+    } else {
+      setLiquidatedWithdrawalError("");
+    }
+  };
+
+  // Perubahan 3: Handler untuk tombol "Max" pada penarikan dana likuidasi
+  const handleMaxLiquidatedWithdrawal = () => {
+    setLiquidatedWithdrawalAmount(liquidatedFunds.amount.toString());
+    setLiquidatedWithdrawalError(""); // Hapus pesan error jika ada
+  };
+
   const handleWithdrawLiquidated = () => {
     toast({ title: "Penarikan Berhasil", description: `Dana hasil likuidasi telah ditarik.` });
-    setLiquidatedFunds(prev => ({ ...prev, amount: 0 })); // Mengatur ulang dana menjadi 0
-    setIsWithdrawDialogOpen(false); // Menutup dialog konfirmasi
+    setLiquidatedFunds(prev => ({ ...prev, amount: 0 }));
+    setIsWithdrawDialogOpen(false);
   };
 
   if (loading) {
@@ -185,7 +208,6 @@ const AdminDashboard = () => {
   }
 
   return (
-    // --- PERUBAHAN 4: Menambahkan wrapper Dialog untuk pop-up penarikan dana ---
     <Dialog open={isWithdrawDialogOpen} onOpenChange={setIsWithdrawDialogOpen}>
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -236,41 +258,108 @@ const AdminDashboard = () => {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" />Parameter Pinjaman</CardTitle><CardDescription>Atur parameter global dan LTV spesifik untuk setiap aset jaminan.</CardDescription></CardHeader>
-              <CardContent className="space-y-6">
-                <div><h3 className="font-semibold mb-2 text-base">Parameter Global</h3><div className="p-4 rounded-lg bg-muted space-y-4"><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="interest-model">Model Bunga</Label><Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}><SelectTrigger id="interest-model"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Linear">Linear</SelectItem><SelectItem value="Majemuk">Majemuk</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label><Input id="liq-penalty" value={globalParams.liquidationPenalty} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value })} /></div></div><Button className="w-full text-white" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button></div></div>
-                <div><h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3><div className="space-y-3 p-4 rounded-lg bg-muted"><div className="space-y-2"><Label>Pilih Aset</Label><Select onValueChange={setSelectedLtvAsset}><SelectTrigger><SelectValue placeholder="Pilih aset untuk diubah..." /></SelectTrigger><SelectContent>{collateralAssets.map(asset => (<SelectItem key={asset.symbol} value={asset.symbol}>{asset.name} ({asset.symbol})</SelectItem>))}</SelectContent></Select></div>
-                  {selectedAssetForLtv && (
-                    <div className="space-y-4 pt-2">
-                      <p className="text-sm">LTV saat ini untuk {selectedAssetForLtv.name}: <span className="font-bold">{selectedAssetForLtv.ltv}%</span></p>
-                      <div className="flex items-center gap-2"><Label htmlFor="new-ltv" className="whitespace-nowrap">LTV Baru (%):</Label><Input id="new-ltv" placeholder="Contoh: 75" value={newLtv} onChange={(e) => setNewLtv(e.target.value)} /><Button size="sm" className="h-9" onClick={handleSaveAssetParam}>Simpan</Button></div>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Parameter Pinjaman
+                </CardTitle>
+                <CardDescription>Atur parameter global dan LTV spesifik untuk setiap aset jaminan.</CardDescription>
+              </CardHeader>
+              {/* Perubahan 1: Mengatur padding di sini agar jarak CardHeader dan CardContent tidak terlalu jauh. */}
+              {/* Anda bisa mengubah nilai 'p-6' jika jaraknya masih terlalu jauh atau terlalu dekat. */}
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <h3 className="font-semibold mb-2 text-base">Parameter Global</h3>
+                  <div className="p-6 rounded-lg bg-muted space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="interest-model">Model Bunga</Label>
+                        <Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}>
+                          <SelectTrigger id="interest-model">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Linear">Linear</SelectItem>
+                            <SelectItem value="Majemuk">Majemuk</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label>
+                        <Input id="liq-penalty" value={globalParams.liquidationPenalty} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value })} />
+                      </div>
                     </div>
-                  )}
-                </div></div>
+                    <Button className="w-full text-white" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3>
+                  <div className="space-y-3 p-6 rounded-lg bg-muted">
+                    <div className="space-y-2">
+                      <Label>Pilih Aset</Label>
+                      <Select onValueChange={setSelectedLtvAsset}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih aset untuk diubah..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {collateralAssets.map(asset => (
+                            <SelectItem key={asset.symbol} value={asset.symbol}>
+                              {asset.name} ({asset.symbol})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedAssetForLtv && (
+                      <div className="space-y-4 pt-2">
+                        <p className="text-sm">LTV saat ini untuk {selectedAssetForLtv.name}: <span className="font-bold">{selectedAssetForLtv.ltv}%</span></p>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="new-ltv" className="whitespace-nowrap">LTV Baru (%):</Label>
+                          <Input id="new-ltv" placeholder="Contoh: 75" value={newLtv} onChange={(e) => setNewLtv(e.target.value)} />
+                          <Button size="sm" className="h-9" onClick={handleSaveAssetParam}>Simpan</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-500" />Manajemen Likuiditas & Likuidasi</CardTitle><CardDescription>Kelola likuiditas pool dan lakukan tindakan likuidasi.</CardDescription></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3><Table><TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>
-                  {undercollateralizedLoans.map(loan => (
-                    <TableRow key={loan.id}>
-                      <TableCell className="font-medium">{loan.userName}</TableCell>
-                      <TableCell className="font-mono">{loan.healthFactor}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          // variant="destructive"
-                          className="bg-muted-foreground text-white"
-                          onClick={() => {
-                            setLoanToLiquidate(loan.id);
-                            setIsConfirmDialogOpen(true);
-                          }}
-                        >
-                          Likuidasi
-                        </Button>
-                      </TableCell></TableRow>))}</TableBody></Table></div>
+                <div>
+                  <h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pengguna</TableHead>
+                        <TableHead>Health Factor</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {undercollateralizedLoans.map(loan => (
+                        <TableRow key={loan.id}>
+                          <TableCell className="font-medium text-foreground">{loan.userName}</TableCell>
+                          <TableCell className="font-mono text-destructive">{loan.healthFactor}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setLoanToLiquidate(loan.id);
+                                setIsConfirmDialogOpen(true);
+                              }}
+                            >
+                              Likuidasi
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold mb-2">Pool Likuiditas</h3>
@@ -280,10 +369,9 @@ const AdminDashboard = () => {
                           <p className="text-muted-foreground">Total Nilai Likuiditas</p>
                           <p className="text-2xl font-bold">Rp {totalPoolValue.toLocaleString('id-ID')}</p>
                         </div>
-
-                        {/* --- PERUBAHAN: Tampilan daftar aset diubah dan struktur Dialog dipertahankan --- */}
                         <div className="space-y-4 border-t pt-4">
-                          {liquidityPool.map(asset => (
+                          {/* Perubahan 2: Filter aset yang tidak memiliki jumlah (amount) untuk tidak ditampilkan */}
+                          {liquidityPool.filter(asset => asset.amount > 0).map(asset => (
                             <div key={asset.id} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold ${asset.color}`}>
@@ -301,10 +389,7 @@ const AdminDashboard = () => {
                             </div>
                           ))}
                         </div>
-                        {/* --- Akhir Perubahan Tampilan Daftar Aset --- */}
-
                         <div className="flex gap-2 mt-4">
-                          {/* Tombol "Tambah" tetap dibungkus oleh Dialog untuk memicu popup */}
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button className="w-full text-white" onClick={() => setPoolAction({ type: 'add', asset: '', amount: '' })}>
@@ -320,8 +405,6 @@ const AdminDashboard = () => {
                               <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction}>Tambah</Button></DialogClose></DialogFooter>
                             </DialogContent>
                           </Dialog>
-
-                          {/* Tombol "Tarik" juga tetap dibungkus oleh Dialog */}
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button className="w-full" variant="outline" onClick={() => setPoolAction({ type: 'withdraw', asset: '', amount: '' })}>
@@ -332,16 +415,55 @@ const AdminDashboard = () => {
                               <DialogHeader><DialogTitle>Tarik Likuiditas dari Pool</DialogTitle></DialogHeader>
                               <div className="space-y-4 py-4">
                                 <div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div>
-                                <div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Jumlah</Label>
+                                  <div className="relative">
+                                    <Input
+                                      placeholder="Masukkan jumlah"
+                                      value={poolAction.amount}
+                                      onChange={(e) => {
+                                        const amount = parseFloat(e.target.value);
+                                        const selectedAsset = liquidityPool.find(a => a.name === poolAction.asset);
+                                        setPoolAction({ ...poolAction, amount: e.target.value });
+                                        if (selectedAsset && amount > selectedAsset.amount) {
+                                          setWithdrawalError(`Jumlah melebihi batas yang tersedia (${selectedAsset.amount.toLocaleString('id-ID')} ${selectedAsset.symbol}).`);
+                                        } else {
+                                          setWithdrawalError("");
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
+                                      onClick={handleMaxWithdrawal}
+                                      disabled={!poolAction.asset}
+                                    >
+                                      Max
+                                    </Button>
+                                  </div>
+                                  {withdrawalError && (
+                                    <Alert variant="destructive" className="mt-2 text-xs">
+                                      <AlertCircle className="h-4 w-4" />
+                                      <AlertDescription>{withdrawalError}</AlertDescription>
+                                    </Alert>
+                                  )}
+                                </div>
                               </div>
-                              <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction} variant="destructive">Tarik</Button></DialogClose></DialogFooter>
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button variant="outline">Batal</Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                  <Button onClick={handlePoolAction} variant="default" disabled={!!withdrawalError}>Tarik</Button>
+                                </DialogClose>
+                              </DialogFooter>
                             </DialogContent>
                           </Dialog>
                         </div>
                       </CardContent>
                     </Card>
                   </div>
-                  {/* --- PERUBAHAN 5: Bagian Aset Hasil Likuidasi diperbarui --- */}
                   <div>
                     <h3 className="font-semibold mb-2">Aset Hasil Likuidasi</h3>
                     <Card className="bg-muted">
@@ -349,12 +471,15 @@ const AdminDashboard = () => {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-muted-foreground">Dana Tersedia</p>
-                            {/* Memformat angka dengan titik sebagai pemisah */}
                             <p className="text-xl font-bold">Rp {liquidatedFunds.amount.toLocaleString('id-ID')}</p>
                           </div>
-                          {/* Tombol "Tarik Dana" sekarang memicu Dialog, bukan fungsi langsung */}
+                          {/* Perubahan 3: Tambahkan DialogTrigger untuk pop-up penarikan dana likuidasi */}
                           <DialogTrigger asChild>
-                            <Button className="text-white">
+                            <Button className="text-white" onClick={() => {
+                              // Reset input saat membuka dialog
+                              setLiquidatedWithdrawalAmount("");
+                              setLiquidatedWithdrawalError("");
+                            }}>
                               <ChevronsRight className="w-4 h-4 mr-2 text-white" />Tarik Dana
                             </Button>
                           </DialogTrigger>
@@ -370,20 +495,43 @@ const AdminDashboard = () => {
 
         <Footer />
 
-        {/* --- PERUBAHAN 6: Menambahkan Dialog untuk konfirmasi penarikan dana --- */}
+        {/* Perubahan 3: DialogContent untuk penarikan dana likuidasi */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Konfirmasi Penarikan Dana</DialogTitle>
             <DialogDescription>
-              Anda akan menarik dana hasil likuidasi. Pastikan detail di bawah ini benar sebelum melanjutkan.
+              Masukkan jumlah dana yang ingin Anda tarik.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Jumlah Penarikan</p>
-              <p className="text-lg font-bold">Rp {liquidatedFunds.amount.toLocaleString('id-ID')}</p>
+            <div className="space-y-2">
+              <Label>Jumlah Penarikan (Rupiah)</Label>
+              <div className="relative">
+                <Input
+                  id="liquidated-amount"
+                  type="number"
+                  placeholder="Masukkan jumlah"
+                  value={liquidatedWithdrawalAmount}
+                  onChange={handleLiquidatedWithdrawalChange}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
+                  onClick={handleMaxLiquidatedWithdrawal}
+                >
+                  Max
+                </Button>
+              </div>
+              {liquidatedWithdrawalError && (
+                <Alert variant="destructive" className="mt-2 text-xs">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{liquidatedWithdrawalError}</AlertDescription>
+                </Alert>
+              )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 border-t pt-4">
               <p className="text-sm text-muted-foreground">Akan Ditarik ke Akun Bank:</p>
               <div className="p-3 border rounded-md bg-background">
                 <p className="font-semibold">{liquidatedFunds.bankInfo.bankName}</p>
@@ -395,7 +543,14 @@ const AdminDashboard = () => {
             <DialogClose asChild>
               <Button variant="outline">Batal</Button>
             </DialogClose>
-            <Button variant="destructive" onClick={handleWithdrawLiquidated}>Konfirmasi Penarikan</Button>
+            <Button
+              variant="destructive"
+              onClick={handleWithdrawLiquidated}
+              // Perubahan 3: Nonaktifkan tombol jika ada error atau jumlah input tidak valid
+              disabled={!!liquidatedWithdrawalError || parseFloat(liquidatedWithdrawalAmount) <= 0 || !liquidatedWithdrawalAmount}
+            >
+              Konfirmasi Penarikan
+            </Button>
           </DialogFooter>
         </DialogContent>
 

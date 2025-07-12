@@ -81,7 +81,7 @@ const FAQ = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
                     <MessageCircle className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">Live Chat</h4>
@@ -94,7 +94,7 @@ const FAQ = () => {
                 </div>
 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
                     <Phone className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">WhatsApp</h4>
@@ -107,7 +107,7 @@ const FAQ = () => {
                 </div>
 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
                     <Mail className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold mb-2">Email</h4>
