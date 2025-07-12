@@ -43,16 +43,16 @@ const Whitepaper = () => {
       tableOfContents: "Daftar Isi",
       sections: [
         { id: "abstract", title: "Abstrak", icon: BookOpen },
-        { id: "introduction", title: "1. Pendahuluan", icon: Globe },
-        { id: "problem", title: "2. Permasalahan", icon: TrendingUp },
-        { id: "solution", title: "3. Solusi", icon: CheckCircle },
-        { id: "architecture", title: "4. Arsitektur Teknis", icon: Settings },
-        { id: "kyc", title: "5. Modul KYC/AML", icon: Shield },
-        { id: "tokenomics", title: "6. Tokenomics IDRX", icon: TrendingUp },
-        { id: "security", title: "7. Kerangka Keamanan", icon: Lock },
-        { id: "governance", title: "8. Model Governance", icon: Users },
-        { id: "roadmap", title: "9. Roadmap Pengembangan", icon: ArrowRight },
-        { id: "conclusion", title: "10. Kesimpulan", icon: CheckCircle },
+        { id: "introduction", title: "Pendahuluan", icon: Globe },
+        { id: "problem", title: "Permasalahan", icon: TrendingUp },
+        { id: "solution", title: "Solusi", icon: CheckCircle },
+        { id: "architecture", title: "Arsitektur Teknis", icon: Settings },
+        { id: "kyc", title: "Modul KYC/AML", icon: Shield },
+        { id: "tokenomics", title: "Tokenomics IDRX", icon: TrendingUp },
+        { id: "security", title: "Kerangka Keamanan", icon: Lock },
+        { id: "governance", title: "Model Governance", icon: Users },
+        { id: "roadmap", title: "Roadmap Pengembangan", icon: ArrowRight },
+        { id: "conclusion", title: "Kesimpulan", icon: CheckCircle },
       ],
       abstract: {
         title: "Abstrak",
@@ -473,7 +473,7 @@ const Whitepaper = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-20 py-8">
         {/* Language Toggle */}
         <div className="flex justify-end mb-6">
           <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">

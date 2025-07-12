@@ -83,5 +83,18 @@
 
   body {
     @apply bg-background text-foreground;
+
+    /* PERUBAHAN: Menambahkan kode untuk menghilangkan panah pada input angka */
+    /* Untuk browser WebKit (Chrome, Safari, Edge) */
+    input[type='number']::-webkit-outer-spin-button,
+    input[type='number']::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Untuk browser Firefox */
+    input[type='number'] {
+      -moz-appearance: textfield;
+    }
   }
 }
