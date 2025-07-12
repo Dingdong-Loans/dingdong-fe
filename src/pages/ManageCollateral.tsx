@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Copy, QrCode, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { Copy, QrCode, ArrowUpCircle, ArrowDownCircle, Wallet, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +22,7 @@ const ManageCollateral = () => {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalCollateralType, setWithdrawalCollateralType] = useState("");
   const [withdrawalStatus, setWithdrawalStatus] = useState("ready");
+  const [withdrawalError, setWithdrawalError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -201,7 +202,7 @@ const ManageCollateral = () => {
                         </div>
                       </div>
                     </div>
-                    <Button className="w-full" onClick={handleDeposit} disabled={!depositAmount || !depositCollateralType || loading}>
+                    <Button className="w-full text-white" onClick={handleDeposit} disabled={!depositAmount || !depositCollateralType || loading}>
                       {loading && depositStatus === 'pending' ? 'Memproses...' : 'Deposit Jaminan'}
                     </Button>
                   </CardContent>
@@ -218,12 +219,19 @@ const ManageCollateral = () => {
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="crypto-type-withdraw">Jenis Crypto</Label>
-                      <Select value={withdrawalCollateralType} onValueChange={setWithdrawalCollateralType}>
+                      <Select
+                        value={withdrawalCollateralType}
+                        onValueChange={(value) => {
+                          setWithdrawalCollateralType(value);
+                          // Reset error saat aset diganti
+                          setWithdrawalError("");
+                        }}
+                      >
                         <SelectTrigger><SelectValue placeholder="Pilih jaminan yang akan ditarik" /></SelectTrigger>
                         <SelectContent>
                           {availableCollateral.map(asset => (
                             <SelectItem key={asset.type} value={asset.type}>
-                              {asset.name} - Tersedia: {asset.amount} {asset.symbol}
+                              {asset.name} - Tersedia: {asset.amount} {asset.symbol.toUpperCase()}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -231,9 +239,29 @@ const ManageCollateral = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="amount-withdraw">Jumlah</Label>
-                      {/* --- PERUBAHAN 3 (Lanjutan): Menambahkan div wrapper dan tombol Max --- */}
                       <div className="relative">
-                        <Input id="amount-withdraw" type="number" placeholder="0.001" value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} />
+                        <Input
+                          id="amount-withdraw"
+                          type="number"
+                          placeholder="0.001"
+                          value={withdrawalAmount}
+                          onChange={(e) => {
+                            const amount = e.target.value;
+                            setWithdrawalAmount(amount);
+
+                            // Logika validasi jumlah penarikan
+                            const selectedAsset = availableCollateral.find(asset => asset.type === withdrawalCollateralType);
+                            if (selectedAsset && parseFloat(amount) > selectedAsset.amount) {
+                              // Set pesan error jika jumlah penarikan melebihi yang tersedia
+                              setWithdrawalError(`Jumlah melebihi jaminan yang tersedia (${selectedAsset.amount} ${selectedAsset.symbol.toUpperCase()}).`);
+                            } else {
+                              // Hapus pesan error jika valid
+                              setWithdrawalError("");
+                            }
+                          }}
+                          // Tambahkan kelas border merah jika ada error
+                          className={withdrawalError ? "border-red-500 focus-visible:ring-red-500" : ""}
+                        />
                         <Button
                           type="button"
                           variant="ghost"
@@ -245,11 +273,25 @@ const ManageCollateral = () => {
                           Max
                         </Button>
                       </div>
+
+                      {/* Tampilkan peringatan jika ada error */}
+                      {withdrawalError && (
+                        <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          {withdrawalError}
+                        </p>
+                      )}
+
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
                       Penarikan akan mempengaruhi Health Factor pinjaman Anda. Pastikan Health Factor tetap di atas ambang batas aman.
                     </div>
-                    <Button variant="destructive" className="w-full bg-primary" onClick={handleWithdrawal} disabled={!withdrawalAmount || !withdrawalCollateralType || loading}>
+                    <Button
+                      className="w-full bg-primary text-white"
+                      onClick={handleWithdrawal}
+                      // Tombol dinonaktifkan jika ada error atau input tidak valid
+                      disabled={!withdrawalAmount || !withdrawalCollateralType || loading || !!withdrawalError}
+                    >
                       {loading && withdrawalStatus === 'pending' ? 'Memproses...' : 'Tarik Jaminan'}
                     </Button>
                   </CardContent>

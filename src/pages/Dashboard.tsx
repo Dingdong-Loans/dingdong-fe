@@ -90,10 +90,17 @@ const Dashboard = () => {
     },
   ];
 
+  // src/pages/Dashboard.tsx
+
+  // --- PERUBAHAN 1: Memperbarui struktur data portfolioItems ---
+  // - Menambahkan 'symbol' untuk ticker aset (misal: BTC).
+  // - Menambahkan 'amount' untuk jumlah aset dalam satuan kripto.
+  // - Mengganti 'value' menjadi 'valueIDR' untuk nilai dalam Rupiah.
+  // - Menambahkan 'color' untuk latar belakang ikon simbol.
   const portfolioItems = [
-    { name: "Bitcoin", value: "Rp 100.000.000" },
-    { name: "Ethereum", value: "Rp 20.000.000" },
-    { name: "Solana", value: "Rp 10.000.000" },
+    { name: "Bitcoin", symbol: "BTC", amount: "0,25", valueIDR: "Rp 100.000.000", color: "bg-orange-500" },
+    { name: "Ethereum", symbol: "ETH", amount: "0,8", valueIDR: "Rp 20.000.000", color: "bg-gray-500" },
+    { name: "Solana", symbol: "SOL", amount: "10,5", valueIDR: "Rp 10.000.000", color: "bg-purple-500" },
   ];
 
   const totalCollateralValue = 135000000;
@@ -259,57 +266,98 @@ const Dashboard = () => {
               {/* Right Sidebar */}
               <aside className="space-y-6">
                 {loading ? <SkeletonLoader type="portfolio" /> : (
-                  <Card className="bg-primary rounded-2xl p-6">
-                    <CardHeader className="p-0 mb-4"><CardTitle className="text-white">Portofolio Jaminan</CardTitle><p className="text-xs text-white text-opacity-80">in progress</p></CardHeader>
+                  <Card className="bg-primary rounded-2xl p-5">
+                    <CardHeader className="p-0 mb-4">
+                      <CardTitle className="text-white">Portofolio Jaminan</CardTitle>
+                      {/* Deskripsi bisa disesuaikan atau dihapus jika tidak perlu */}
+                      <p className="text-xs text-white text-opacity-80">Total aset yang Anda jaminkan</p>
+                    </CardHeader>
                     <CardContent className="p-0 space-y-4">
+                      {/* --- PERUBAHAN 2: Memperbarui cara menampilkan setiap item portofolio --- */}
                       {portfolioItems.map((item, index) => (
                         <div key={index} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white" /><p className="font-medium text-white">{item.name}</p></div>
-                          <p className="font-semibold text-white">{item.value}</p>
+                          {/* Bagian kiri: Ikon dan nama aset */}
+                          <div className="flex items-center gap-3">
+                            {/* Latar belakang ikon menggunakan properti 'color' dari data */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${item.color}`}>
+                              {item.symbol}
+                            </div>
+                            <div>
+                              {/* Menampilkan simbol (ticker) aset */}
+                              <p className="font-medium text-white">{item.symbol}</p>
+                              {/* Menampilkan nama lengkap aset */}
+                              <p className="text-sm text-white/80">{item.name}</p>
+                            </div>
+                          </div>
+                          {/* Bagian kanan: Jumlah aset dan nilainya dalam Rupiah */}
+                          <div className="text-right">
+                            <p className="font-semibold text-white tabular-nums">{item.amount}</p>
+                            <p className="text-sm text-white/80 tabular-nums">{item.valueIDR}</p>
+                          </div>
                         </div>
                       ))}
-                      <div className="pt-4"><Link to="/manage-collateral" className="w-full"><Button variant="outline" className="bg-white w-full">Kelola Jaminan</Button></Link></div>
+                      <div className="pt-4">
+                        <Link to="/manage-collateral" className="w-full">
+                          {/* Tombol dibuat lebih kontras agar mudah terlihat */}
+                          <Button variant="secondary" className="bg-white text-muted-foreground w-full text-md">
+                            Kelola Jaminan
+                          </Button>
+                        </Link>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
                 {loading ? <SkeletonLoader type="health_factor" /> : (
-                  <Card className="bg-foreground text-white rounded-2xl p-6">
-                    <CardHeader className="p-0 mb-4 text-left">
-                      <CardTitle>Health Factor</CardTitle>
-                      <p className="text-xs text-gray-300">Rasio nilai jaminan terhadap pinjaman</p>
-                    </CardHeader>
-                    <CardContent className="p-0 h-40 w-full mx-auto relative flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadialBarChart
-                          data={[{ name: 'Health Factor', value: healthFactor, fill: healthFactorColor }]}
-                          innerRadius="150%"
-                          outerRadius="180%"
-                          barSize={16}
-                          startAngle={180}
-                          endAngle={0}
-                          cx="50%"
-                          cy="75%"
-                        >
-                          <PolarAngleAxis
-                            type="number"
-                            domain={[0, 1]}
-                            angleAxisId={0}
-                            tick={false}
-                          />
-                          <RadialBar
-                            background={{ fill: 'rgba(255, 255, 255, 0.1)' }}
-                            dataKey="value"
-                            cornerRadius={10}
-                          />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
-                      <div className="absolute top-3/4 left-1/2 -translate-x-1/2 -translate-y-full text-center">
-                        <p className="text-5xl font-bold" style={{ color: healthFactorColor }}>
-                          {healthFactor.toFixed(2)}
-                        </p>
-                        <p className="text-sm text-gray-300 mt-1">
-                          Status: {healthFactor > 1 ? 'Aman' : 'Berisiko'}
-                        </p>
+                  // src/pages/Dashboard.tsx
+
+                  // --- Ganti seluruh Card untuk Health Factor dengan kode di bawah ini ---
+                  <Card className="bg-foreground text-white rounded-2xl p-6 flex flex-col">
+                    {/* CardHeader tidak lagi digunakan di sini */}
+                    <CardContent className="p-0 flex flex-col flex-grow items-center">
+                      {/* Judul dan deskripsi sekarang ada di dalam CardContent */}
+                      <div className="w-full text-left mb-2">
+                        <CardTitle className="py-1">Health Factor</CardTitle>
+                        <p className="text-xs text-gray-300">Rasio nilai jaminan terhadap pinjaman</p>
+                      </div>
+
+                      {/* Kontainer untuk chart dan teks, dibuat agar mengisi sisa ruang */}
+                      <div className="flex-grow w-full flex flex-col items-center justify-center">
+                        {/* Wrapper untuk speedometer */}
+                        <div className="w-full h-24">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadialBarChart
+                              data={[{ name: 'Health Factor', value: healthFactor, fill: healthFactorColor }]}
+                              innerRadius="190%"
+                              outerRadius="220%"
+                              barSize={17}
+                              startAngle={180}
+                              endAngle={0}
+                              cy="100%"
+                            >
+                              <PolarAngleAxis
+                                type="number"
+                                domain={[0, 1]}
+                                angleAxisId={0}
+                                tick={false}
+                              />
+                              <RadialBar
+                                background={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                                dataKey="value"
+                                cornerRadius={10}
+                              />
+                            </RadialBarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Wrapper untuk teks */}
+                        <div className="text-center -mt-10">
+                          <p className="text-4xl font-bold" style={{ color: healthFactorColor }}>
+                            {healthFactor.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-300 mt-2">
+                            Status: {healthFactor > 1 ? 'Aman' : 'Berisiko'}
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

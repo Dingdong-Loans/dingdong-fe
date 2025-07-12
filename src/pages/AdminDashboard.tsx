@@ -190,7 +190,7 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-20 py-8">
           <div className="mb-8"><h1 className="text-4xl font-bold text-foreground mb-2">Admin Control Panel</h1><p className="text-muted-foreground">Kelola aset, parameter pinjaman, dan fungsi kritis protokol.</p></div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -261,7 +261,8 @@ const AdminDashboard = () => {
                       <TableCell className="text-right">
                         <Button
                           size="sm"
-                          variant="destructive"
+                          // variant="destructive"
+                          className="bg-muted-foreground text-white"
                           onClick={() => {
                             setLoanToLiquidate(loan.id);
                             setIsConfirmDialogOpen(true);
@@ -279,38 +280,62 @@ const AdminDashboard = () => {
                           <p className="text-muted-foreground">Total Nilai Likuiditas</p>
                           <p className="text-2xl font-bold">Rp {totalPoolValue.toLocaleString('id-ID')}</p>
                         </div>
-                        <div className="space-y-2 border-t pt-4">
+
+                        {/* --- PERUBAHAN: Tampilan daftar aset diubah dan struktur Dialog dipertahankan --- */}
+                        <div className="space-y-4 border-t pt-4">
                           {liquidityPool.map(asset => (
-                            <div key={asset.id} className="flex justify-between items-center text-sm">
+                            <div key={asset.id} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${asset.color}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold ${asset.color}`}>
                                   {asset.symbol}
                                 </div>
-                                <span className="text-muted-foreground">{asset.name} ({asset.symbol})</span>
+                                <div>
+                                  <p className="font-semibold text-foreground">{asset.symbol}</p>
+                                  <p className="text-sm text-muted-foreground">{asset.name}</p>
+                                </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-mono">{asset.amount.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
-                                <p className="text-xs text-muted-foreground">≈ Rp {(asset.amount * asset.rate).toLocaleString('id-ID')}</p>
+                                <p className="font-semibold text-foreground tabular-nums">{asset.amount.toLocaleString('id-ID', { maximumFractionDigits: 8 })}</p>
+                                <p className="text-sm text-muted-foreground tabular-nums">Rp {(asset.amount * asset.rate).toLocaleString('id-ID')}</p>
                               </div>
                             </div>
                           ))}
                         </div>
+                        {/* --- Akhir Perubahan Tampilan Daftar Aset --- */}
+
                         <div className="flex gap-2 mt-4">
+                          {/* Tombol "Tambah" tetap dibungkus oleh Dialog untuk memicu popup */}
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button className="w-full text-white" onClick={() => setPoolAction({ type: 'add', asset: '', amount: '' })}>
                                 <PlusCircle className="w-4 h-4 mr-2 text-white" />Tambah
                               </Button>
                             </DialogTrigger>
-                            <DialogContent><DialogHeader><DialogTitle>Tambah Likuiditas ke Pool</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction}>Tambah</Button></DialogClose></DialogFooter></DialogContent>
+                            <DialogContent>
+                              <DialogHeader><DialogTitle>Tambah Likuiditas ke Pool</DialogTitle></DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div>
+                              </div>
+                              <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction}>Tambah</Button></DialogClose></DialogFooter>
+                            </DialogContent>
                           </Dialog>
+
+                          {/* Tombol "Tarik" juga tetap dibungkus oleh Dialog */}
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button className="w-full" variant="outline" onClick={() => setPoolAction({ type: 'withdraw', asset: '', amount: '' })}>
                                 <MoveDownLeft className="w-4 h-4 mr-2" />Tarik
                               </Button>
                             </DialogTrigger>
-                            <DialogContent><DialogHeader><DialogTitle>Tarik Likuiditas dari Pool</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div></div><DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction} variant="destructive">Tarik</Button></DialogClose></DialogFooter></DialogContent>
+                            <DialogContent>
+                              <DialogHeader><DialogTitle>Tarik Likuiditas dari Pool</DialogTitle></DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2"><Label>Aset</Label><Select onValueChange={(v) => setPoolAction({ ...poolAction, asset: v })}><SelectTrigger><SelectValue placeholder="Pilih aset..." /></SelectTrigger><SelectContent>{liquidityPool.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Jumlah</Label><Input placeholder="Masukkan jumlah" value={poolAction.amount} onChange={(e) => setPoolAction({ ...poolAction, amount: e.target.value })} /></div>
+                              </div>
+                              <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button onClick={handlePoolAction} variant="destructive">Tarik</Button></DialogClose></DialogFooter>
+                            </DialogContent>
                           </Dialog>
                         </div>
                       </CardContent>
