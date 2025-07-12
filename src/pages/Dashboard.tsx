@@ -7,8 +7,20 @@ import Footer from "@/components/Footer";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, CreditCard, ArrowRight, Info, Wallet, Banknote, HandCoins } from "lucide-react";
-import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
+import {
+  PlusCircle,
+  CreditCard,
+  ArrowRight,
+  Wallet,
+  Banknote,
+  HandCoins,
+} from "lucide-react";
+import {
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+  ResponsiveContainer,
+} from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -45,75 +57,94 @@ const Dashboard = () => {
       date: "14 Nov 2024",
       collateral: "12 BTC",
       tenor: "12 Bulan",
-      amount: "50,000,000",
-      size: "45,000,000",
+      amount: "50.000.000",
+      size: "45.000.000",
       status: "active",
-      monthlyPayment: "4,500,000",
+      monthlyPayment: "4.500.000",
       interestRate: "1.5%",
-      dueDate: "14 Desember 2024"
+      dueDate: "14 Desember 2024",
     },
     {
       id: "LOAN-002",
       date: "28 Okt 2024",
       collateral: "8 ETH",
       tenor: "24 Bulan",
-      amount: "30,000,000",
-      size: "18,000,000",
+      amount: "30.000.000",
+      size: "18.000.000",
       status: "active",
-      monthlyPayment: "2,187,500",
+      monthlyPayment: "2.187.500",
       interestRate: "9.0%",
-      dueDate: "28 November 2024"
+      dueDate: "28 November 2024",
     },
     {
       id: "Pinjaman Ekspansi #003",
       date: "15 Sep 2024",
       collateral: "15 BTC",
       tenor: "18 Bulan",
-      amount: "75,000,000",
-      size: "70,000,000",
+      amount: "75.000.000",
+      size: "70.000.000",
       status: "active",
-      monthlyPayment: "6,875,000",
+      monthlyPayment: "6.875.000",
       interestRate: "8.75%",
-      dueDate: "15 Oktober 2024"
+      dueDate: "15 Oktober 2024",
     },
     {
       id: "Pinjaman Darurat #004",
       date: "01 Agu 2024",
       collateral: "50 SOL",
       tenor: "6 Bulan",
-      amount: "15,000,000",
-      size: "15,000,000",
+      amount: "15.000.000",
+      size: "15.000.000",
       status: "inactive",
       monthlyPayment: "N/A",
       interestRate: "10.0%",
-      dueDate: "01 Februari 2025"
+      dueDate: "01 Februari 2025",
     },
   ];
 
-  // src/pages/Dashboard.tsx
-
-  // --- PERUBAHAN 1: Memperbarui struktur data portfolioItems ---
-  // - Menambahkan 'symbol' untuk ticker aset (misal: BTC).
-  // - Menambahkan 'amount' untuk jumlah aset dalam satuan kripto.
-  // - Mengganti 'value' menjadi 'valueIDR' untuk nilai dalam Rupiah.
-  // - Menambahkan 'color' untuk latar belakang ikon simbol.
   const portfolioItems = [
-    { name: "Bitcoin", symbol: "BTC", amount: "0,25", valueIDR: "Rp 100.000.000", color: "bg-orange-500" },
-    { name: "Ethereum", symbol: "ETH", amount: "0,8", valueIDR: "Rp 20.000.000", color: "bg-gray-500" },
-    { name: "Solana", symbol: "SOL", amount: "10,5", valueIDR: "Rp 10.000.000", color: "bg-purple-500" },
+    {
+      name: "Bitcoin",
+      symbol: "BTC",
+      amount: "0,25",
+      valueIDR: "Rp 100.000.000",
+      color: "bg-orange-500",
+    },
+    {
+      name: "Ethereum",
+      symbol: "ETH",
+      amount: "0,8",
+      valueIDR: "Rp 20.000.000",
+      color: "bg-gray-500",
+    },
+    {
+      name: "Solana",
+      symbol: "SOL",
+      amount: "10,5",
+      valueIDR: "Rp 10.000.000",
+      color: "bg-purple-500",
+    },
   ];
 
   const totalCollateralValue = 135000000;
+  // --- PERUBAHAN: Menggunakan `replace(/\./g, '')` untuk menghapus titik sebagai pemisah ribuan ---
+  // Ini memastikan string seperti "45.000.000" diubah menjadi angka 45000000 dengan benar.
   const totalOutstandingLoans = activeLoans
-    .filter(loan => loan.status === 'active')
-    .reduce((acc, loan) => acc + parseFloat(loan.size.replace(/,/g, '')), 0);
+    .filter((loan) => loan.status === "active")
+    .reduce(
+      (acc, loan) => acc + parseFloat(loan.size.replace(/\./g, "")),
+      0
+    );
 
-  const healthFactor = totalOutstandingLoans > 0 ? totalCollateralValue / totalOutstandingLoans : 2.5;
+  const healthFactor =
+    totalOutstandingLoans > 0
+      ? totalCollateralValue / totalOutstandingLoans
+      : 2.5;
 
   const getHealthFactorHslColor = (factor: number) => {
-    if (factor < 1) return 'hsl(var(--destructive))';
-    if (factor === 1) return 'hsl(48 96% 59%)'; // Yellow
-    return 'hsl(var(--primary))';
+    if (factor < 1) return "hsl(var(--destructive))";
+    if (factor === 1) return "hsl(48 96% 59%)"; // Yellow
+    return "hsl(var(--primary))";
   };
 
   const healthFactorColor = getHealthFactorHslColor(healthFactor);
@@ -139,9 +170,13 @@ const Dashboard = () => {
 
   const getRepaymentAmount = () => {
     if (!selectedLoan) return 0;
-    const parseCurrency = (value: string) => parseFloat(value.replace(/,/g, ''));
+    // --- PERUBAHAN: Helper 'parseCurrency' sekarang juga menggunakan `replace(/\./g, '')` ---
+    // Ini memastikan semua kalkulasi pembayaran menggunakan angka yang benar.
+    const parseCurrency = (value: string) =>
+      parseFloat(value.replace(/\./g, ""));
     if (repaymentType === "full") return parseCurrency(selectedLoan.size);
-    if (repaymentType === "monthly") return parseCurrency(selectedLoan.monthlyPayment);
+    if (repaymentType === "monthly")
+      return parseCurrency(selectedLoan.monthlyPayment);
     return parseFloat(customAmount) || 0;
   };
 
@@ -153,7 +188,7 @@ const Dashboard = () => {
       description: `Pembayaran untuk ${selectedLoan?.id} sedang diproses.`,
     });
     setIsPaymentDialogOpen(false);
-  }
+  };
 
   return (
     <>
@@ -179,32 +214,47 @@ const Dashboard = () => {
                     <Card className="border shadow-sm">
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Wallet className="h-4 w-4 text-muted-foreground" />
-                        <CardTitle className="text-sm font-medium">Total Jaminan Aktif</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                          Total Jaminan Aktif
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold">Rp {totalCollateralValue.toLocaleString('id-ID')}</p>
-                        <p className="text-xs text-muted-foreground">+5.2% dari bulan lalu</p>
+                        <p className="text-2xl font-bold">
+                          Rp {totalCollateralValue.toLocaleString("id-ID")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          +5.2% dari bulan lalu
+                        </p>
                       </CardContent>
                     </Card>
                     <Card className="border shadow-sm">
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Banknote className="h-5 w-5 text-muted-foreground" />
-                        <CardTitle className="text-sm font-medium">Sisa Pinjaman Aktif</CardTitle>
-
+                        <CardTitle className="text-sm font-medium">
+                          Sisa Pinjaman Aktif
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold">Rp {totalOutstandingLoans.toLocaleString('id-ID')}</p>
-                        <p className="text-xs text-muted-foreground">dari semua pinjaman</p>
+                        <p className="text-2xl font-bold">
+                          Rp {totalOutstandingLoans.toLocaleString("id-ID")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          dari semua pinjaman
+                        </p>
                       </CardContent>
                     </Card>
                     <Card className="border shadow-sm">
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <HandCoins className="h-5 w-5 text-muted-foreground" />
-                        <CardTitle className="text-sm font-medium">Tersedia untuk Pinjam</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                          Tersedia untuk Pinjam
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold">Rp 75,000,000</p>
-                        <p className="text-xs text-muted-foreground">Berdasarkan jaminan saat ini</p>
+                        <p className="text-2xl font-bold">Rp 75.000.000</p>
+                        <p className="text-xs text-muted-foreground">
+                          Berdasarkan jaminan saat ini
+                        </p>
                       </CardContent>
                     </Card>
                   </div>
@@ -214,98 +264,132 @@ const Dashboard = () => {
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">Riwayat Pinjaman</h2>
-                    <Link to="/apply"><Button variant="outline" size="sm"><PlusCircle className="w-4 h-4 mr-2" />Tambah Pinjaman</Button></Link>
+                    <Link to="/apply">
+                      <Button variant="outline" size="sm">
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        Tambah Pinjaman
+                      </Button>
+                    </Link>
                   </div>
                   {loading ? (
-                    <div className="space-y-4"><SkeletonLoader type="loan_card" /><SkeletonLoader type="loan_card" /></div>
+                    <div className="space-y-4">
+                      <SkeletonLoader type="loan_card" />
+                      <SkeletonLoader type="loan_card" />
+                    </div>
                   ) : (
-                      <div className="space-y-5">       {/* jarak antara card*/}
-                        {activeLoans.map((loan) => (
-                          <Card
-                            key={loan.id}
-                            // Perubahan 2: Menyesuaikan efek hover agar latar belakang card menjadi abu-abu
-                            className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100`}
-                          >
-                            {/* Perubahan 1: Mengubah struktur CardContent agar sesuai dengan layout di gambar */}
-                            <CardContent className="p-4 flex  mb-3 flex-col md:flex-row justify-between items-center md:items-start space-y-4 md:space-y-0">
-                              {/* Bagian Kiri: Nama Pinjaman, Tanggal, dan Informasi Lainnya */}
-                              <div className="flex-1 flex flex-col min-w-0">
-                                {/* Judul dan sub-teks */}
-                                <div className="mb-4 space-y-1">
-                                  <p className="font-bold text-lg">{loan.id}</p>
-                                  <p className="text-sm text-muted-foreground">Dibuat: {loan.date}</p>
-                                  <p className="text-sm text-muted-foreground">Tenor: {loan.tenor}</p>
-                                </div>
-                                {/* Tombol Aksi */}
-                                <div className="flex space-x-2">
-                                  {loan.status === 'active' && (
-                                    <Button size="sm" className="bg-primary text-white hover:bg-primary/90" onClick={(e) => handlePaymentClick(e, loan)}>
-                                      Bayar Cicilan
-                                    </Button>
-                                  )}
-                                  <Button size="sm" variant="outline" onClick={(e) => handleDetailClick(e, loan)}>
-                                    Detail
+                    <div className="space-y-5">
+                      {activeLoans.map((loan) => (
+                        <Card
+                          key={loan.id}
+                          className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100`}
+                        >
+                          <CardContent className="p-5 flex mb-3 flex-col md:flex-row justify-between items-center md:items-start space-y-4 md:space-y-0">
+                            <div className="flex-1 flex flex-col min-w-0">
+                              <div className="mb-4 space-y-1">
+                                <p className="font-bold text-lg">{loan.id}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Dibuat: {loan.date}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Tenor: {loan.tenor}
+                                </p>
+                              </div>
+                              <div className="flex space-x-2">
+                                {loan.status === "active" && (
+                                  <Button
+                                    size="sm"
+                                    className="bg-primary text-white hover:bg-primary/90"
+                                    onClick={(e) => handlePaymentClick(e, loan)}
+                                  >
+                                    Bayar Cicilan
                                   </Button>
-                                </div>
-                              </div>
-
-                              {/* Bagian Kanan: Jumlah dan Status */}
-                              <div className="flex-shrink-0 text-right">
-                                {/* Jumlah Pinjaman dan Sisa */}
-                                <p className="text-2xl font-bold">Rp {loan.amount}</p>
-                                <p className="text-sm text-muted-foreground mb-2">Sisa: Rp {loan.size}</p>
-                                {/* Badge Status */}
-                                {loan.status === 'active' ? (
-                                  <Badge className="bg-primary/20 text-primary border-primary/30 hover:text-white">Aktif</Badge>
-                                ) : (
-                                  <Badge className="bg-muted text-muted-foreground hover:text-white">Non-aktif</Badge>
                                 )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => handleDetailClick(e, loan)}
+                                >
+                                  Detail
+                                </Button>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                            </div>
+
+                            <div className="flex-shrink-0 text-right">
+                              <p className="text-2xl font-bold">
+                                Rp {loan.amount}
+                              </p>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Sisa: Rp {loan.size}
+                              </p>
+                              {loan.status === "active" ? (
+                                <Badge className="bg-primary/20 text-primary border-primary/30 hover:text-white">
+                                  Aktif
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-muted text-muted-foreground hover:text-white">
+                                  Non-aktif
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* Right Sidebar */}
               <aside className="space-y-6">
-                {loading ? <SkeletonLoader type="portfolio" /> : (
+                {loading ? (
+                  <SkeletonLoader type="portfolio" />
+                ) : (
                   <Card className="bg-primary rounded-2xl p-5">
                     <CardHeader className="p-0 mb-4">
-                      <CardTitle className="text-white">Portofolio Jaminan</CardTitle>
-                      {/* Deskripsi bisa disesuaikan atau dihapus jika tidak perlu */}
-                      <p className="text-xs text-white text-opacity-80">Total aset yang Anda jaminkan</p>
+                      <CardTitle className="text-white">
+                        Portofolio Jaminan
+                      </CardTitle>
+                      <p className="text-xs text-white text-opacity-80">
+                        Total aset yang Anda jaminkan
+                      </p>
                     </CardHeader>
                     <CardContent className="p-0 space-y-4">
-                      {/* --- PERUBAHAN 2: Memperbarui cara menampilkan setiap item portofolio --- */}
                       {portfolioItems.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          {/* Bagian kiri: Ikon dan nama aset */}
+                        <div
+                          key={index}
+                          className="flex items-center justify-between"
+                        >
                           <div className="flex items-center gap-3">
-                            {/* Latar belakang ikon menggunakan properti 'color' dari data */}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${item.color}`}>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${item.color}`}
+                            >
                               {item.symbol}
                             </div>
                             <div>
-                              {/* Menampilkan simbol (ticker) aset */}
-                              <p className="font-medium text-white">{item.symbol}</p>
-                              {/* Menampilkan nama lengkap aset */}
-                              <p className="text-sm text-white/80">{item.name}</p>
+                              <p className="font-medium text-white">
+                                {item.symbol}
+                              </p>
+                              <p className="text-sm text-white/80">
+                                {item.name}
+                              </p>
                             </div>
                           </div>
-                          {/* Bagian kanan: Jumlah aset dan nilainya dalam Rupiah */}
                           <div className="text-right">
-                            <p className="font-semibold text-white tabular-nums">{item.amount}</p>
-                            <p className="text-sm text-white/80 tabular-nums">{item.valueIDR}</p>
+                            <p className="font-semibold text-white tabular-nums">
+                              {item.amount}
+                            </p>
+                            <p className="text-sm text-white/80 tabular-nums">
+                              {item.valueIDR}
+                            </p>
                           </div>
                         </div>
                       ))}
                       <div className="pt-4">
                         <Link to="/manage-collateral" className="w-full">
-                          {/* Tombol dibuat lebih kontras agar mudah terlihat */}
-                          <Button variant="secondary" className="bg-white text-muted-foreground w-full text-md">
+                          <Button
+                            variant="secondary"
+                            className="bg-white text-muted-foreground w-full text-md"
+                          >
                             Kelola Jaminan
                           </Button>
                         </Link>
@@ -313,26 +397,28 @@ const Dashboard = () => {
                     </CardContent>
                   </Card>
                 )}
-                {loading ? <SkeletonLoader type="health_factor" /> : (
-                  // src/pages/Dashboard.tsx
-
-                  // --- Ganti seluruh Card untuk Health Factor dengan kode di bawah ini ---
+                {loading ? (
+                  <SkeletonLoader type="health_factor" />
+                ) : (
                   <Card className="bg-foreground text-white rounded-2xl p-6 flex flex-col">
-                    {/* CardHeader tidak lagi digunakan di sini */}
                     <CardContent className="p-0 flex flex-col flex-grow items-center">
-                      {/* Judul dan deskripsi sekarang ada di dalam CardContent */}
                       <div className="w-full text-left mb-2">
                         <CardTitle className="py-1">Health Factor</CardTitle>
-                        <p className="text-xs text-gray-300">Rasio nilai jaminan terhadap pinjaman</p>
+                        <p className="text-xs text-gray-300 pb-2">
+                          Rasio nilai jaminan terhadap pinjaman
+                        </p>
                       </div>
-
-                      {/* Kontainer untuk chart dan teks, dibuat agar mengisi sisa ruang */}
                       <div className="flex-grow w-full flex flex-col items-center justify-center">
-                        {/* Wrapper untuk speedometer */}
                         <div className="w-full h-24">
                           <ResponsiveContainer width="100%" height="100%">
                             <RadialBarChart
-                              data={[{ name: 'Health Factor', value: healthFactor, fill: healthFactorColor }]}
+                              data={[
+                                {
+                                  name: "Health Factor",
+                                  value: healthFactor,
+                                  fill: healthFactorColor,
+                                },
+                              ]}
                               innerRadius="190%"
                               outerRadius="220%"
                               barSize={17}
@@ -347,21 +433,24 @@ const Dashboard = () => {
                                 tick={false}
                               />
                               <RadialBar
-                                background={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                                background={{
+                                  fill: "rgba(255, 255, 255, 0.1)",
+                                }}
                                 dataKey="value"
                                 cornerRadius={10}
                               />
                             </RadialBarChart>
                           </ResponsiveContainer>
                         </div>
-
-                        {/* Wrapper untuk teks */}
                         <div className="text-center -mt-10">
-                          <p className="text-4xl font-bold" style={{ color: healthFactorColor }}>
+                          <p
+                            className="text-4xl font-bold"
+                            style={{ color: healthFactorColor }}
+                          >
                             {healthFactor.toFixed(2)}
                           </p>
                           <p className="text-sm text-gray-300 mt-2">
-                            Status: {healthFactor > 1 ? 'Aman' : 'Berisiko'}
+                            Status: {healthFactor > 1 ? "Aman" : "Berisiko"}
                           </p>
                         </div>
                       </div>
@@ -379,20 +468,52 @@ const Dashboard = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detail Pinjaman: {selectedLoan?.id}</DialogTitle>
-            <DialogDescription>Ringkasan lengkap dari pinjaman Anda.</DialogDescription>
+            <DialogDescription>
+              Ringkasan lengkap dari pinjaman Anda.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Tanggal Pengajuan:</span><span className="font-medium">{selectedLoan?.date}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Jumlah Pinjaman:</span><span className="font-medium">Rp {selectedLoan?.amount}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sisa Hutang:</span><span className="font-medium">Rp {selectedLoan?.size}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Tenor:</span><span className="font-medium">{selectedLoan?.tenor}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Suku Bunga:</span><span className="font-medium">{selectedLoan?.interestRate}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Jatuh Tempo Berikutnya:</span><span className="font-medium">{selectedLoan?.dueDate}</span></div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Tanggal Pengajuan:</span>
+              <span className="font-medium">{selectedLoan?.date}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Jumlah Pinjaman:</span>
+              <span className="font-medium">Rp {selectedLoan?.amount}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Sisa Hutang:</span>
+              <span className="font-medium">Rp {selectedLoan?.size}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Tenor:</span>
+              <span className="font-medium">{selectedLoan?.tenor}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Suku Bunga:</span>
+              <span className="font-medium">{selectedLoan?.interestRate}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Jatuh Tempo Berikutnya:
+              </span>
+              <span className="font-medium">{selectedLoan?.dueDate}</span>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>Tutup</Button>
-            {selectedLoan?.status === 'active' && (
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={openPaymentFromDetail}>Bayar Cicilan</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsDetailDialogOpen(false)}
+            >
+              Tutup
+            </Button>
+            {selectedLoan?.status === "active" && (
+              <Button
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={openPaymentFromDetail}
+              >
+                Bayar Cicilan
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>
@@ -402,46 +523,92 @@ const Dashboard = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pembayaran Pinjaman: {selectedLoan?.id}</DialogTitle>
-            <DialogDescription>Pilih jenis pembayaran dan lakukan pembayaran menggunakan IDRX.</DialogDescription>
+            <DialogDescription>
+              Pilih jenis pembayaran dan lakukan pembayaran menggunakan IDRX.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Jenis Pembayaran</Label>
-              <RadioGroup value={repaymentType} onValueChange={setRepaymentType} className="space-y-2">
+              <RadioGroup
+                value={repaymentType}
+                onValueChange={setRepaymentType}
+                className="space-y-2"
+              >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="full" id="full" />
-                  <Label htmlFor="full" className="cursor-pointer">Pelunasan (Rp {parseFloat(selectedLoan?.size.replace(/,/g, '')).toLocaleString('id-ID')})</Label>
+                  <Label htmlFor="full" className="cursor-pointer">
+                    Pelunasan (Rp{" "}
+                    {/* --- PERUBAHAN: Menggunakan `replace(/\./g, '')` --- */}
+                    {parseFloat(
+                      selectedLoan?.size.replace(/\./g, "")
+                    ).toLocaleString("id-ID")}
+                    )
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="monthly" id="monthly" />
-                  <Label htmlFor="monthly" className="cursor-pointer">Cicilan Bulanan (Rp {parseFloat(selectedLoan?.monthlyPayment.replace(/,/g, '')).toLocaleString('id-ID')})</Label>
+                  <Label htmlFor="monthly" className="cursor-pointer">
+                    Cicilan Bulanan (Rp{" "}
+                    {/* --- PERUBAHAN: Menggunakan `replace(/\./g, '')` --- */}
+                    {parseFloat(
+                      selectedLoan?.monthlyPayment.replace(/\./g, "")
+                    ).toLocaleString("id-ID")}
+                    )
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="cursor-pointer">Jumlah Custom</Label>
+                  <Label htmlFor="custom" className="cursor-pointer">
+                    Jumlah Custom
+                  </Label>
                 </div>
               </RadioGroup>
             </div>
             {repaymentType === "custom" && (
               <div className="space-y-2">
-                <Label htmlFor="custom-amount">Jumlah Pembayaran (IDRX)</Label>
-                <Input id="custom-amount" type="number" placeholder="Masukkan jumlah" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} />
+                <Label htmlFor="custom-amount">
+                  Jumlah Pembayaran (IDRX)
+                </Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  placeholder="Masukkan jumlah"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                />
               </div>
             )}
             <div className="space-y-1 pt-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Jumlah Pembayaran:</span>
-                <span className="font-medium">Rp {paymentAmount.toLocaleString('id-ID')}</span>
+                <span className="text-muted-foreground">
+                  Jumlah Pembayaran:
+                </span>
+                <span className="font-medium">
+                  Rp {paymentAmount.toLocaleString("id-ID")}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Dalam IDRX:</span>
-                <span className="font-medium">{paymentAmount.toLocaleString('id-ID')} IDRX</span>
+                <span className="font-medium">
+                  {paymentAmount.toLocaleString("id-ID")} IDRX
+                </span>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Batal</Button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handlePaymentSubmit}>Konfirmasi Pembayaran</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsPaymentDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={handlePaymentSubmit}
+            >
+              Konfirmasi Pembayaran
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -70,7 +70,7 @@ const FAQ = () => {
         </div>
 
         {/* Contact Support Section */}
-        <div className="max-w-4xl mx-auto mt-24">
+        {/* <div className="max-w-4xl mx-auto mt-24">
           <Card className="bg-foreground text-background">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Masih Ada Pertanyaan?</CardTitle>
@@ -128,7 +128,7 @@ const FAQ = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
 
       <Footer />

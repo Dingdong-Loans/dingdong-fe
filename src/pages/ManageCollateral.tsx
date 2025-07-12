@@ -114,7 +114,31 @@ const ManageCollateral = () => {
     });
   };
 
+  // --- PERUBAHAN UTAMA: Menambahkan validasi dan notifikasi gagal ---
   const handleDeposit = () => {
+    const amount = parseFloat(depositAmount);
+
+    // 1. Validasi Input: Memeriksa apakah input valid sebelum melanjutkan.
+    if (!depositCollateralType || !depositAmount || isNaN(amount) || amount <= 0) {
+      // 2. Notifikasi Gagal: Menampilkan toast error dengan border merah dan ikon X jika validasi gagal.
+      toast({
+        variant: "destructive",
+        title: "Deposit Gagal",
+        description: (
+          <div className="flex items-center gap-2">
+            <XCircle className="h-5 w-5" />
+            <span>
+              Silakan pilih jenis crypto dan masukkan jumlah yang valid.
+            </span>
+          </div>
+        ),
+        className:
+          "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+      });
+      return; // Menghentikan eksekusi fungsi jika input tidak valid.
+    }
+
+    // Kode di bawah ini hanya akan berjalan jika validasi berhasil.
     setLoading(true);
     setDepositStatus("pending");
     setTimeout(() => {
@@ -122,7 +146,6 @@ const ManageCollateral = () => {
         const existingAssetIndex = prevCollateral.findIndex(
           (asset) => asset.type === depositCollateralType
         );
-        const amount = parseFloat(depositAmount);
         const rate =
           cryptoRates[depositCollateralType as keyof typeof cryptoRates] || 0;
 
@@ -148,7 +171,7 @@ const ManageCollateral = () => {
       setDepositStatus("completed");
       setLoading(false);
 
-      // --- PERUBAHAN: Notifikasi berhasil dengan border hijau dan ikon ceklis ---
+      // 3. Notifikasi Berhasil: Tampilan ini tetap sama untuk kasus sukses.
       toast({
         title: "Deposit Berhasil",
         description: (
