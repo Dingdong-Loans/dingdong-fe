@@ -18,7 +18,9 @@ const Homepage = () => {
       {/* ========== HERO SECTION YANG DIPERBARUI ========== */}
       <section
         className="relative w-full bg-no-repeat bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/hero-background.jpg')" }}
+        style={{
+          backgroundImage: "url('/images/hero-background.jpg')",
+        }}
       >
         <div className="container mx-auto px-20">
           <div className="grid lg:grid-cols-2 min-h-[500px] md:min-h-[600px] items-center">
