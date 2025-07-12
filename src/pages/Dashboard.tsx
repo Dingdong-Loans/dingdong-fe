@@ -14,6 +14,8 @@ import {
   Wallet,
   Banknote,
   HandCoins,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import {
   RadialBarChart,
@@ -183,10 +185,41 @@ const Dashboard = () => {
   const paymentAmount = getRepaymentAmount();
 
   const handlePaymentSubmit = () => {
-    toast({
-      title: "Pembayaran Berhasil",
-      description: `Pembayaran untuk ${selectedLoan?.id} sedang diproses.`,
-    });
+    // Simulasi kemungkinan gagal atau berhasil
+    const isSuccess = Math.random() > 0.3; // 70% kemungkinan berhasil
+
+    if (isSuccess) {
+      // --- Logika untuk notifikasi BERHASIL (tidak berubah) ---
+      toast({
+        title: "Pembayaran Berhasil",
+        description: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span>
+              Pembayaran untuk {selectedLoan?.id} sedang diproses.
+            </span>
+          </div>
+        ),
+        className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+      });
+    } else {
+      // --- PERUBAHAN: Logika untuk notifikasi GAGAL ---
+      toast({
+        variant: "destructive", // Varian 'destructive' akan menggunakan warna merah
+        title: "Pembayaran Gagal",
+        description: (
+          <div className="flex items-center gap-2">
+            <XCircle className="h-5 w-5" />
+            <span>
+              Terjadi masalah saat memproses pembayaran. Silakan coba lagi.
+            </span>
+          </div>
+        ),
+        // Menambahkan kelas untuk border dan latar belakang merah
+        className: "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+      });
+    }
+
     setIsPaymentDialogOpen(false);
   };
 
