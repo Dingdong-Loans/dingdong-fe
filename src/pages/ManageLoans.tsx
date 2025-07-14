@@ -220,7 +220,7 @@ const ManageLoans = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ${totalCollateralValue.toLocaleString("en-US")}
+                    Rp {totalCollateralValue.toLocaleString("id-ID")}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Nilai jaminan saat ini
