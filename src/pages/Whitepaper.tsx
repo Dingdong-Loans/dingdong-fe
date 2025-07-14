@@ -234,7 +234,7 @@ const Whitepaper = () => {
         title: "6. Tokenomics IDRX",
         sections: [
           {
-            subtitle: "6.1 Token Overview",
+            subtitle: "6.1 Ikhtisar Token",
             content: "IDRX adalah stablecoin yang dipatok ke Rupiah Indonesia (IDR) dengan rasio 1:1, dirancang khusus untuk ekosistem lending Dingdong Loans. Token ini berfungsi sebagai mata uang pinjaman utama dalam protokol, memungkinkan UMKM mengakses likuiditas dalam denominasi yang familiar sambil memanfaatkan efisiensi blockchain.",
             features: [
               "Peg 1:1 dengan Rupiah Indonesia",
