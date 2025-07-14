@@ -258,7 +258,7 @@ const Whitepaper = () => {
           {
             subtitle: "6.3 Distribusi dan Utility",
             distribution: [
-              { category: "Liquidity Pool", percentage: "40%", description: "Pool likuiditas untuk lending" },
+              { category: "Pool Likuiditas", percentage: "40%", description: "Pool likuiditas untuk lending" },
               { category: "Treasury", percentage: "25%", description: "Cadangan protokol dan pengembangan" },
               { category: "Partner Banks", percentage: "20%", description: "Alokasi untuk partner perbankan" },
               { category: "Team & Advisors", percentage: "10%", description: "Tim dan penasihat (vested 2 tahun)" },
