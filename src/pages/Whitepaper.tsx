@@ -241,7 +241,7 @@ const Whitepaper = () => {
               "Didukung oleh cadangan fiat dan crypto",
               "Dapat ditukar kembali ke IDR melalui partner perbankan",
               "Transparansi cadangan real-time melalui oracle",
-              "Compliance dengan regulasi Bank Indonesia"
+              "Kepatuhan dengan regulasi Bank Indonesia"
             ]
           },
           {
