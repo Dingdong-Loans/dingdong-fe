@@ -30,6 +30,7 @@ import Whitepaper from "./pages/Whitepaper";
 import AdminDashboard from "./pages/AdminDashboard";
 import TermsAndGuidelines from "./pages/TermsAndGuidelines";
 import PrivacyPolicy from "./pages/Privacy";
+import Partner from "./pages/Partner";
 
 // queryClient digunakan untuk management data, walaupun ini hanya mockup.
 // Variabel ini berfungsi untuk menyimpan cache dari web,
@@ -75,6 +76,8 @@ const App = () => (
           <Route path="/terms" element={<TermsAndGuidelines />} />
           <Route path="/admindashboard" element={<AdminDashboard />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/partner" element={<Partner />} />
+          {/* Catch-all route for 404 Not Found */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

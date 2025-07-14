@@ -59,22 +59,34 @@ const Footer = () => {
             <h3 className="font-semibold mb-4 text-foreground">Produk</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li>
-                <Link to="/apply" className="hover:text-primary transition-colors">
+                <Link
+                  to="/apply"
+                  className="hover:text-primary transition-colors"
+                >
                   Ajukan Pinjaman
                 </Link>
               </li>
               <li>
-                <Link to="/loans" className="hover:text-primary transition-colors">
+                <Link
+                  to="/loans"
+                  className="hover:text-primary transition-colors"
+                >
                   Kelola Pinjaman
                 </Link>
               </li>
               <li>
-                <Link to="/manage-collateral" className="hover:text-primary transition-colors">
+                <Link
+                  to="/manage-collateral"
+                  className="hover:text-primary transition-colors"
+                >
                   Jaminan
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="hover:text-primary transition-colors">
+                <Link
+                  to="/dashboard"
+                  className="hover:text-primary transition-colors"
+                >
                   Dashboard
                 </Link>
               </li>
@@ -82,26 +94,38 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4 text-foreground">Dukungan</h3>
+            <h3 className="font-semibold mb-4 text-foreground">Sumber</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li>
-                <Link to="/whitepaper" className="hover:text-primary transition-colors">
+                <Link
+                  to="/whitepaper"
+                  className="hover:text-primary transition-colors"
+                >
                   Whitepaper
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="hover:text-primary transition-colors">
+                <Link
+                  to="/faq"
+                  className="hover:text-primary transition-colors"
+                >
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link to="#" className="hover:text-primary transition-colors">
-                  Blog
+                <Link
+                  to="/terms"
+                  className="hover:text-primary transition-colors"
+                >
+                  Syarat & Ketentuan
                 </Link>
               </li>
               <li>
-                <Link to="#" className="hover:text-primary transition-colors">
-                  Support
+                <Link
+                  to="/privacy"
+                  className="hover:text-primary transition-colors"
+                >
+                  Privasi Data
                 </Link>
               </li>
             </ul>
@@ -111,7 +135,10 @@ const Footer = () => {
             <h3 className="font-semibold mb-4 text-foreground">Perusahaan</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li>
-                <Link to="/about" className="hover:text-primary transition-colors">
+                <Link
+                  to="/about"
+                  className="hover:text-primary transition-colors"
+                >
                   Tentang Kami
                 </Link>
               </li>
@@ -126,7 +153,10 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="#" className="hover:text-primary transition-colors">
+                <Link
+                  to="/partner"
+                  className="hover:text-primary transition-colors"
+                >
                   Partner
                 </Link>
               </li>
@@ -140,7 +170,10 @@ const Footer = () => {
             &copy; 2025 Dingdong Loans. All rights reserved.
           </p>
           <div className="flex items-center space-x-6">
-            <Link to="/privacy" className="hover:text-primary transition-colors">
+            <Link
+              to="/privacy"
+              className="hover:text-primary transition-colors"
+            >
               Privacy Policy
             </Link>
             <Link to="/terms" className="hover:text-primary transition-colors">
