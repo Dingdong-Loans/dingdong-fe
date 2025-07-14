@@ -229,12 +229,239 @@ const Whitepaper = () => {
             ],
           },
         ],
-      },
+      },      
       tokenomics: {
         title: "6. Tokenomics IDRX",
         sections: [
-          // Tokenomics content would go here
-        ],
+          {
+            subtitle: "6.1 Token Overview",
+            content: "IDRX adalah stablecoin yang dipatok ke Rupiah Indonesia (IDR) dengan rasio 1:1, dirancang khusus untuk ekosistem lending Dingdong Loans. Token ini berfungsi sebagai mata uang pinjaman utama dalam protokol, memungkinkan UMKM mengakses likuiditas dalam denominasi yang familiar sambil memanfaatkan efisiensi blockchain.",
+            features: [
+              "Peg 1:1 dengan Rupiah Indonesia",
+              "Didukung oleh cadangan fiat dan crypto",
+              "Dapat ditukar kembali ke IDR melalui partner perbankan",
+              "Transparansi cadangan real-time melalui oracle",
+              "Compliance dengan regulasi Bank Indonesia"
+            ]
+          },
+          {
+            subtitle: "6.2 Mekanisme Stabilitas",
+            content: "Stabilitas IDRX dipertahankan melalui sistem cadangan bertingkat dan mekanisme arbitrase otomatis:",
+            mechanisms: [
+              "Cadangan Fiat: 60% dalam rekening bank partner",
+              "Cadangan Crypto: 30% dalam aset stabil (USDT/USDC)",
+              "Emergency Fund: 10% untuk menjaga stabilitas ekstrem",
+              "Automated Rebalancing: Smart contract yang menyesuaikan cadangan",
+              "Oracle Price Feed: Pemantauan harga IDR real-time"
+            ]
+          },
+          {
+            subtitle: "6.3 Distribusi dan Utility",
+            distribution: [
+              { category: "Liquidity Pool", percentage: "40%", description: "Pool likuiditas untuk lending" },
+              { category: "Treasury", percentage: "25%", description: "Cadangan protokol dan pengembangan" },
+              { category: "Partner Banks", percentage: "20%", description: "Alokasi untuk partner perbankan" },
+              { category: "Team & Advisors", percentage: "10%", description: "Tim dan penasihat (vested 2 tahun)" },
+              { category: "Community Rewards", percentage: "5%", description: "Insentif adopsi dan governance" }
+            ]
+          }
+        ]
+      },
+      security: {
+        title: "7. Kerangka Keamanan",
+        sections: [
+          {
+            subtitle: "7.1 Arsitektur Keamanan Multi-Layer",
+            content: "Protokol Dingdong Loans mengimplementasikan kerangka keamanan berlapis untuk melindungi aset pengguna dan menjaga integritas sistem:",
+            layers: [
+              "Smart Contract Security: Audit independen dan formal verification",
+              "Oracle Security: Multiple price feeds dengan median filtering",
+              "Access Control: Role-based permissions dengan multi-sig",
+              "Liquidation Protection: Automated monitoring dan early warning",
+              "Compliance Layer: KYC/AML terintegrasi dengan monitoring"
+            ]
+          },
+          {
+            subtitle: "7.2 Manajemen Risiko",
+            content: "Sistem manajemen risiko komprehensif memantau dan memitigasi berbagai jenis risiko:",
+            riskTypes: [
+              {
+                type: "Risiko Kolateral",
+                mitigation: "Dynamic LTV ratios, real-time monitoring, automated liquidation"
+              },
+              {
+                type: "Risiko Oracle",
+                mitigation: "Multiple oracle providers, price deviation checks, fallback mechanisms"
+              },
+              {
+                type: "Risiko Likuiditas",
+                mitigation: "Reserve requirements, emergency funding, partner bank integration"
+              },
+              {
+                type: "Risiko Smart Contract",
+                mitigation: "Formal verification, audit trails, upgrade governance"
+              }
+            ]
+          },
+          {
+            subtitle: "7.3 Audit dan Compliance",
+            content: "Protokol menjalani audit keamanan reguler dan mematuhi standar compliance Indonesia:",
+            measures: [
+              "Audit Smart Contract oleh firm keamanan blockchain terkemuka",
+              "Penetration testing infrastruktur secara berkala",
+              "Compliance dengan regulasi Bank Indonesia dan OJK",
+              "ISO 27001 certification untuk data security",
+              "Regular security updates dan incident response plan"
+            ]
+          }
+        ]
+      },
+      governance: {
+        title: "8. Model Governance",
+        sections: [
+          {
+            subtitle: "8.1 Governance Terpusat dengan Oversight Regulasi",
+            content: "Mengikuti kerangka regulasi Indonesia, Dingdong Loans mengadopsi model governance terpusat yang memungkinkan kepatuhan penuh terhadap peraturan Bank Indonesia dan OJK sambil mempertahankan transparansi operasional.",
+            rationale: "Model terpusat dipilih untuk memastikan compliance dengan UU No. 7 Tahun 2011 tentang Mata Uang dan peraturan terkait cryptocurrency di Indonesia."
+          },
+          {
+            subtitle: "8.2 Struktur Governance",
+            structure: [
+              {
+                entity: "Board of Directors",
+                role: "Pengambilan keputusan strategis dan oversight protokol",
+                composition: "CEO, CTO, Chief Compliance Officer, Independent Directors"
+              },
+              {
+                entity: "Risk Committee",
+                role: "Evaluasi dan mitigasi risiko sistemik",
+                composition: "Risk Manager, Legal Counsel, External Risk Advisor"
+              },
+              {
+                entity: "Compliance Committee",
+                role: "Memastikan kepatuhan regulasi dan AML/KYC",
+                composition: "Chief Compliance Officer, Legal Team, External Compliance Advisor"
+              },
+              {
+                entity: "Technical Committee",
+                role: "Pengembangan protokol dan keamanan sistem",
+                composition: "CTO, Lead Developers, Security Auditors"
+              }
+            ]
+          },
+          {
+            subtitle: "8.3 Proses Pengambilan Keputusan",
+            process: [
+              "Proposal: Usulan perubahan protokol dari tim internal atau stakeholder",
+              "Review: Evaluasi teknis dan legal oleh committee terkait",
+              "Risk Assessment: Analisis dampak terhadap sistem dan compliance",
+              "Board Approval: Persetujuan final dari Board of Directors",
+              "Implementation: Eksekusi perubahan dengan monitoring ketat",
+              "Reporting: Transparansi kepada regulator dan stakeholder"
+            ]
+          }
+        ]
+      },
+      roadmap: {
+        title: "9. Roadmap Pengembangan",
+        sections: [
+          {
+            subtitle: "9.1 Fase 1: Foundation (Q1-Q2 2025)",
+            milestones: [
+              {
+                title: "KYC Integration",
+                description: "Implementasi sistem KYC/AML yang fully compliant dengan regulasi BI",
+                timeline: "Q1 2025",
+                status: "In Progress"
+              },
+              {
+                title: "Core Protocol Launch",
+                description: "Peluncuran protokol lending dengan fitur dasar",
+                timeline: "Q2 2025",
+                status: "Planned"
+              },
+              {
+                title: "Security Audit",
+                description: "Audit keamanan komprehensif oleh firm internasional",
+                timeline: "Q2 2025",
+                status: "Planned"
+              }
+            ]
+          },
+          {
+            subtitle: "9.2 Fase 2: Partnership Expansion (Q3-Q4 2025)",
+            milestones: [
+              {
+                title: "Bank Perkreditan Rakyat (BPR) Partnership",
+                description: "Kemitraan dengan BPR untuk ekspansi akses dan compliance",
+                timeline: "Q3 2025",
+                status: "Planned"
+              },
+              {
+                title: "Toko Gadai Integration",
+                description: "Integrasi dengan jaringan toko gadai untuk verifikasi kolateral fisik",
+                timeline: "Q3 2025",
+                status: "Planned"
+              },
+              {
+                title: "Lending Partner Network",
+                description: "Ekspansi jaringan partner lending tradisional",
+                timeline: "Q4 2025",
+                status: "Planned"
+              }
+            ]
+          },
+          {
+            subtitle: "9.3 Fase 3: Scale & Innovation (2026)",
+            milestones: [
+              {
+                title: "Advanced Risk Management",
+                description: "AI-powered risk assessment dan predictive analytics",
+                timeline: "Q1 2026",
+                status: "Research"
+              },
+              {
+                title: "Cross-Chain Integration",
+                description: "Support untuk multiple blockchain networks",
+                timeline: "Q2 2026",
+                status: "Research"
+              },
+              {
+                title: "Institutional Products",
+                description: "Produk lending untuk korporasi dan institusi",
+                timeline: "Q3 2026",
+                status: "Research"
+              }
+            ]
+          }
+        ]
+      },
+      conclusion: {
+        title: "10. Kesimpulan",
+        sections: [
+          {
+            subtitle: "10.1 Ringkasan Inovasi",
+            content: "Dingdong Loans Protocol memperkenalkan solusi lending terdesentralisasi yang dirancang khusus untuk mengatasi tantangan akses pembiayaan UMKM Indonesia. Dengan menggabungkan teknologi blockchain dengan kepatuhan regulasi lokal, protokol ini menjembatani gap antara kepemilikan aset crypto dan kebutuhan likuiditas bisnis tradisional."
+          },
+          {
+            subtitle: "10.2 Dampak Ekonomi yang Diharapkan",
+            impacts: [
+              "Meningkatkan akses pembiayaan untuk 64 juta UMKM Indonesia",
+              "Mengurangi ketergantungan pada sistem perbankan tradisional",
+              "Menciptakan utility nyata untuk aset cryptocurrency",
+              "Mendorong adopsi teknologi blockchain di sektor UMKM",
+              "Berkontribusi pada inklusi keuangan digital Indonesia"
+            ]
+          },
+          {
+            subtitle: "10.3 Visi Jangka Panjang",
+            content: "Kami memproyeksikan Dingdong Loans akan menjadi infrastruktur lending utama untuk ekosistem crypto-fiat Indonesia, memproses lebih dari $100 juta dalam pinjaman pada tahun 2027 dan melayani lebih dari 10,000 UMKM aktif. Dengan roadmap yang jelas dan kemitraan strategis, protokol ini berpotensi mentransformasi landscape pembiayaan UMKM Indonesia."
+          },
+          {
+            subtitle: "10.4 Call to Action",
+            content: "Kami mengundang stakeholder ekosistem - dari UMKM, investor, hingga regulator - untuk bergabung dalam menciptakan masa depan pembiayaan yang lebih inklusif dan efisien. Bersama-sama, kita dapat membangun jembatan antara ekonomi digital dan tradisional untuk kemajuan Indonesia."
+          }
+        ]
       },
       getFullWhitepaper: {
         title: "Dapatkan Whitepaper Lengkap",
@@ -449,8 +676,235 @@ const Whitepaper = () => {
       tokenomics: {
         title: "6. IDRX Tokenomics",
         sections: [
-          // Tokenomics content would go here
-        ],
+          {
+            subtitle: "6.1 Token Overview",
+            content: "IDRX is a stablecoin pegged to the Indonesian Rupiah (IDR) at a 1:1 ratio, specifically designed for the Dingdong Loans lending ecosystem. It serves as the primary loan currency in the protocol, enabling SMEs to access liquidity in a familiar denomination while leveraging blockchain efficiency.",
+            features: [
+              "1:1 peg with Indonesian Rupiah",
+              "Backed by fiat and crypto reserves",
+              "Redeemable to IDR through banking partners",
+              "Real-time reserve transparency via oracles",
+              "Compliant with Bank Indonesia regulations"
+            ]
+          },
+          {
+            subtitle: "6.2 Stability Mechanism",
+            content: "IDRX stability is maintained through a multi-tiered reserve system and automated arbitrage mechanisms:",
+            mechanisms: [
+              "Fiat Reserves: 60% in partner bank accounts",
+              "Crypto Reserves: 30% in stable assets (USDT/USDC)",
+              "Emergency Fund: 10% for extreme stability maintenance",
+              "Automated Rebalancing: Smart contracts adjusting reserves",
+              "Oracle Price Feed: Real-time IDR price monitoring"
+            ]
+          },
+          {
+            subtitle: "6.3 Distribution and Utility",
+            distribution: [
+              { category: "Liquidity Pool", percentage: "40%", description: "Lending liquidity pools" },
+              { category: "Treasury", percentage: "25%", description: "Protocol reserves and development" },
+              { category: "Partner Banks", percentage: "20%", description: "Banking partner allocation" },
+              { category: "Team & Advisors", percentage: "10%", description: "Team and advisors (2-year vesting)" },
+              { category: "Community Rewards", percentage: "5%", description: "Adoption incentives and governance" }
+            ]
+          }
+        ]
+      },
+      security: {
+        title: "7. Security Framework",
+        sections: [
+          {
+            subtitle: "7.1 Multi-Layer Security Architecture",
+            content: "Dingdong Loans Protocol implements a layered security framework to protect user assets and maintain system integrity:",
+            layers: [
+              "Smart Contract Security: Independent audits and formal verification",
+              "Oracle Security: Multiple price feeds with median filtering",
+              "Access Control: Role-based permissions with multi-sig",
+              "Liquidation Protection: Automated monitoring and early warning",
+              "Compliance Layer: Integrated KYC/AML with monitoring"
+            ]
+          },
+          {
+            subtitle: "7.2 Risk Management",
+            content: "A comprehensive risk management system monitors and mitigates various types of risks:",
+            riskTypes: [
+              {
+                type: "Collateral Risk",
+                mitigation: "Dynamic LTV ratios, real-time monitoring, automated liquidation"
+              },
+              {
+                type: "Oracle Risk",
+                mitigation: "Multiple oracle providers, price deviation checks, fallback mechanisms"
+              },
+              {
+                type: "Liquidity Risk",
+                mitigation: "Reserve requirements, emergency funding, partner bank integration"
+              },
+              {
+                type: "Smart Contract Risk",
+                mitigation: "Formal verification, audit trails, upgrade governance"
+              }
+            ]
+          },
+          {
+            subtitle: "7.3 Audit and Compliance",
+            content: "The protocol undergoes regular security audits and complies with Indonesian standards:",
+            measures: [
+              "Smart Contract audits by leading blockchain security firms",
+              "Regular infrastructure penetration testing",
+              "Compliance with Bank Indonesia and OJK regulations",
+              "ISO 27001 certification for data security",
+              "Regular security updates and incident response plan"
+            ]
+          }
+        ]
+      },
+      governance: {
+        title: "8. Governance Model",
+        sections: [
+          {
+            subtitle: "8.1 Centralized Governance with Regulatory Oversight",
+            content: "Following Indonesian regulatory frameworks, Dingdong Loans adopts a centralized governance model that ensures full compliance with Bank Indonesia and OJK regulations while maintaining operational transparency.",
+            rationale: "The centralized model is chosen to ensure compliance with Law No. 7 of 2011 on Currency and related cryptocurrency regulations in Indonesia."
+          },
+          {
+            subtitle: "8.2 Governance Structure",
+            structure: [
+              {
+                entity: "Board of Directors",
+                role: "Strategic decision-making and protocol oversight",
+                composition: "CEO, CTO, Chief Compliance Officer, Independent Directors"
+              },
+              {
+                entity: "Risk Committee",
+                role: "Risk evaluation and systemic risk mitigation",
+                composition: "Risk Manager, Legal Counsel, External Risk Advisor"
+              },
+              {
+                entity: "Compliance Committee",
+                role: "Regulatory compliance and AML/KYC oversight",
+                composition: "Chief Compliance Officer, Legal Team, External Compliance Advisor"
+              },
+              {
+                entity: "Technical Committee",
+                role: "Protocol development and system security",
+                composition: "CTO, Lead Developers, Security Auditors"
+              }
+            ]
+          },
+          {
+            subtitle: "8.3 Decision-Making Process",
+            process: [
+              "Proposal: Change proposals from internal team or stakeholders",
+              "Review: Technical and legal evaluation by relevant committees",
+              "Risk Assessment: Impact analysis on system and compliance",
+              "Board Approval: Final approval from Board of Directors",
+              "Implementation: Change execution with strict monitoring",
+              "Reporting: Transparency to regulators and stakeholders"
+            ]
+          }
+        ]
+      },
+      roadmap: {
+        title: "9. Development Roadmap",
+        sections: [
+          {
+            subtitle: "9.1 Phase 1: Foundation (Q1-Q2 2025)",
+            milestones: [
+              {
+                title: "KYC Integration",
+                description: "Implementation of fully compliant KYC/AML system with BI regulations",
+                timeline: "Q1 2025",
+                status: "In Progress"
+              },
+              {
+                title: "Core Protocol Launch",
+                description: "Launch of lending protocol with basic features",
+                timeline: "Q2 2025",
+                status: "Planned"
+              },
+              {
+                title: "Security Audit",
+                description: "Comprehensive security audit by international firm",
+                timeline: "Q2 2025",
+                status: "Planned"
+              }
+            ]
+          },
+          {
+            subtitle: "9.2 Phase 2: Partnership Expansion (Q3-Q4 2025)",
+            milestones: [
+              {
+                title: "Bank Perkreditan Rakyat (BPR) Partnership",
+                description: "Partnership with BPR for access expansion and compliance",
+                timeline: "Q3 2025",
+                status: "Planned"
+              },
+              {
+                title: "Pawn Shop Integration",
+                description: "Integration with pawn shop networks for physical collateral verification",
+                timeline: "Q3 2025",
+                status: "Planned"
+              },
+              {
+                title: "Lending Partner Network",
+                description: "Traditional lending partner network expansion",
+                timeline: "Q4 2025",
+                status: "Planned"
+              }
+            ]
+          },
+          {
+            subtitle: "9.3 Phase 3: Scale & Innovation (2026)",
+            milestones: [
+              {
+                title: "Advanced Risk Management",
+                description: "AI-powered risk assessment and predictive analytics",
+                timeline: "Q1 2026",
+                status: "Research"
+              },
+              {
+                title: "Cross-Chain Integration",
+                description: "Support for multiple blockchain networks",
+                timeline: "Q2 2026",
+                status: "Research"
+              },
+              {
+                title: "Institutional Products",
+                description: "Lending products for corporations and institutions",
+                timeline: "Q3 2026",
+                status: "Research"
+              }
+            ]
+          }
+        ]
+      },
+      conclusion: {
+        title: "10. Conclusion",
+        sections: [
+          {
+            subtitle: "10.1 Innovation Summary",
+            content: "Dingdong Loans Protocol introduces a decentralized lending solution specifically designed to address Indonesian SME financing challenges. By combining blockchain technology with local regulatory compliance, the protocol bridges the gap between crypto asset ownership and traditional business liquidity needs."
+          },
+          {
+            subtitle: "10.2 Expected Economic Impact",
+            impacts: [
+              "Improve financing access for 64 million Indonesian SMEs",
+              "Reduce dependence on traditional banking systems",
+              "Create real utility for cryptocurrency assets",
+              "Drive blockchain technology adoption in SME sector",
+              "Contribute to Indonesian digital financial inclusion"
+            ]
+          },
+          {
+            subtitle: "10.3 Long-term Vision",
+            content: "We project Dingdong Loans will become the primary lending infrastructure for Indonesia's crypto-fiat ecosystem, processing over $100 million in loans by 2027 and serving more than 10,000 active SMEs. With a clear roadmap and strategic partnerships, this protocol has the potential to transform Indonesia's SME financing landscape."
+          },
+          {
+            subtitle: "10.4 Call to Action",
+            content: "We invite ecosystem stakeholders - from SMEs, investors, to regulators - to join in creating a more inclusive and efficient financing future. Together, we can build bridges between digital and traditional economies for Indonesia's advancement."
+          }
+        ]
       },
       getFullWhitepaper: {
         title: "Get the Complete Whitepaper",
@@ -904,6 +1358,288 @@ const Whitepaper = () => {
                             </li>
                           ))}
                         </ol>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Tokenomics */}
+            <section id="tokenomics" className="mb-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <TrendingUp className="w-6 h-6 mr-2 text-primary" />
+                    {currentContent.tokenomics.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-lg max-w-none space-y-6">
+                  {currentContent.tokenomics.sections.map((section, index) => (
+                    <div key={index}>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {section.subtitle}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed mb-4">
+                        {section.content}
+                      </p>
+
+                      {section.features && (
+                        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4">
+                          {section.features.map((feature, featureIndex) => (
+                            <li key={featureIndex}>{feature}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {section.mechanisms && (
+                        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4">
+                          {section.mechanisms.map((mechanism, mechanismIndex) => (
+                            <li key={mechanismIndex}>{mechanism}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {section.distribution && (
+                        <div className="overflow-x-auto mt-4">
+                          <table className="w-full border-collapse border border-gray-300">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="border border-gray-300 p-3 text-left">
+                                  {language === "id" ? "Kategori" : "Category"}
+                                </th>
+                                <th className="border border-gray-300 p-3 text-left">
+                                  {language === "id" ? "Persentase" : "Percentage"}
+                                </th>
+                                <th className="border border-gray-300 p-3 text-left">
+                                  {language === "id" ? "Deskripsi" : "Description"}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {section.distribution.map((item, itemIndex) => (
+                                <tr key={itemIndex}>
+                                  <td className="border border-gray-300 p-3">
+                                    {item.category}
+                                  </td>
+                                  <td className="border border-gray-300 p-3">
+                                    {item.percentage}
+                                  </td>
+                                  <td className="border border-gray-300 p-3">
+                                    {item.description}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Security Framework */}
+            <section id="security" className="mb-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <Lock className="w-6 h-6 mr-2 text-primary" />
+                    {currentContent.security.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-lg max-w-none space-y-6">
+                  {currentContent.security.sections.map((section, index) => (
+                    <div key={index}>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {section.subtitle}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed mb-4">
+                        {section.content}
+                      </p>
+
+                      {section.layers && (
+                        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4">
+                          {section.layers.map((layer, layerIndex) => (
+                            <li key={layerIndex}>{layer}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {section.riskTypes && (
+                        <div className="space-y-4">
+                          {section.riskTypes.map((risk, riskIndex) => (
+                            <div key={riskIndex} className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="font-semibold text-primary mb-2">
+                                {risk.type}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {risk.mitigation}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {section.measures && (
+                        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4">
+                          {section.measures.map((measure, measureIndex) => (
+                            <li key={measureIndex}>{measure}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Governance Model */}
+            <section id="governance" className="mb-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <Users className="w-6 h-6 mr-2 text-primary" />
+                    {currentContent.governance.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-lg max-w-none space-y-6">
+                  {currentContent.governance.sections.map((section, index) => (
+                    <div key={index}>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {section.subtitle}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed mb-4">
+                        {section.content}
+                      </p>
+
+                      {section.rationale && (
+                        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                          <p className="text-sm text-blue-800 italic">
+                            {section.rationale}
+                          </p>
+                        </div>
+                      )}
+
+                      {section.structure && (
+                        <div className="space-y-4">
+                          {section.structure.map((entity, entityIndex) => (
+                            <div key={entityIndex} className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="font-semibold text-primary mb-2">
+                                {entity.entity}
+                              </h4>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                <strong>Role:</strong> {entity.role}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                <strong>Composition:</strong> {entity.composition}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {section.process && (
+                        <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                          {section.process.map((step, stepIndex) => (
+                            <li key={stepIndex} className="mb-2">
+                              {step.split(":").length > 1 ? (
+                                <>
+                                  <span className="font-semibold">
+                                    {step.split(":")[0]}:
+                                  </span>
+                                  {step.split(":").slice(1).join(":")}
+                                </>
+                              ) : (
+                                step
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Development Roadmap */}
+            <section id="roadmap" className="mb-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <ArrowRight className="w-6 h-6 mr-2 text-primary" />
+                    {currentContent.roadmap.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-lg max-w-none space-y-6">
+                  {currentContent.roadmap.sections.map((section, index) => (
+                    <div key={index}>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {section.subtitle}
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        {section.milestones.map((milestone, milestoneIndex) => (
+                          <div key={milestoneIndex} className="border rounded-lg p-4 bg-accent">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-semibold text-primary">
+                                {milestone.title}
+                              </h4>
+                              <Badge 
+                                variant={
+                                  milestone.status === "In Progress" ? "default" :
+                                  milestone.status === "Planned" ? "secondary" : 
+                                  "outline"
+                                }
+                              >
+                                {milestone.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {milestone.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              <strong>Timeline:</strong> {milestone.timeline}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Conclusion */}
+            <section id="conclusion" className="mb-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <CheckCircle className="w-6 h-6 mr-2 text-primary" />
+                    {currentContent.conclusion.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-lg max-w-none space-y-6">
+                  {currentContent.conclusion.sections.map((section, index) => (
+                    <div key={index}>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {section.subtitle}
+                      </h3>
+                      
+                      {section.content && (
+                        <p className="text-muted-foreground leading-relaxed mb-4">
+                          {section.content}
+                        </p>
+                      )}
+
+                      {section.impacts && (
+                        <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                          {section.impacts.map((impact, impactIndex) => (
+                            <li key={impactIndex}>{impact}</li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   ))}
