@@ -270,6 +270,7 @@ const RepayLoan = () => {
                           size="sm"
                           variant="outline"
                           onClick={copyAddress}
+                          aria-label="Copy address"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
