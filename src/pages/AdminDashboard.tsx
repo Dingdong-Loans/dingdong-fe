@@ -139,6 +139,7 @@ const AdminDashboard = () => {
     symbol: "",
     contractAddress: "",
   });
+
   const [selectedLtvAsset, setSelectedLtvAsset] = useState("");
   const [newLtv, setNewLtv] = useState("");
   const [poolAction, setPoolAction] = useState({
@@ -168,20 +169,18 @@ const AdminDashboard = () => {
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
 
   const [withdrawalError, setWithdrawalError] = useState("");
-  const [liquidatedWithdrawalAmount, setLiquidatedWithdrawalAmount] =
-    useState("");
-  const [liquidatedWithdrawalError, setLiquidatedWithdrawalError] =
-    useState("");
+  const [liquidatedWithdrawalAmount, setLiquidatedWithdrawalAmount] = useState("");
+  const [liquidatedWithdrawalError, setLiquidatedWithdrawalError] = useState("");
 
   const selectedAssetForLtv = collateralAssets.find(
     (a) => a.symbol === selectedLtvAsset
   );
+
   const totalPoolValue = liquidityPool.reduce(
     (sum, asset) => sum + asset.amount * asset.rate,
     0
   );
 
-  // --- PERUBAHAN: Fungsi helper untuk format angka dan membersihkannya ---
   // --- PERUBAHAN: Fungsi helper untuk format angka dengan dukungan desimal (koma) ---
   const formatNumber = (value: string) => {
     if (!value) return "";
@@ -523,15 +522,66 @@ const AdminDashboard = () => {
                       </TableBody>
                     </Table>
                     {/* ... (Dialog tambah aset tidak berubah) */}
-                    <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah Aset Jaminan</Button></DialogTrigger>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full mt-4">
+                          <PlusCircle className="w-4 h-4 mr-2" />
+                          Tambah Aset Jaminan
+                        </Button>
+                      </DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Tambah Aset Jaminan Baru</DialogTitle></DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2"><Label htmlFor="collateral-name">Nama Aset</Label><Input id="collateral-name" placeholder="Contoh: Bitcoin" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div>
-                          <div className="space-y-2"><Label htmlFor="collateral-symbol">Simbol</Label><Input id="collateral-symbol" placeholder="Contoh: BTC" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div>
-                          <div className="space-y-2"><Label htmlFor="collateral-address">Contract Address</Label><Input id="collateral-address" placeholder="Contoh: 0x..." value={newAsset.contractAddress} onChange={(e) => setNewAsset({ ...newAsset, contractAddress: e.target.value, })} /></div>
+                        <DialogHeader>
+                          <DialogTitle>Tambah Aset Jaminan Baru</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="collateral-name">Nama Aset</Label>
+                            <Input
+                              id="collateral-name"
+                              placeholder="Contoh: Bitcoin"
+                              value={newAsset.name}
+                              onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="collateral-symbol">Simbol</Label>
+                            <Input
+                              id="collateral-symbol"
+                              placeholder="Contoh: BTC"
+                              value={newAsset.symbol}
+                              onChange={(e) =>
+                                setNewAsset({ ...newAsset, symbol: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="collateral-address">Contract Address</Label>
+                            <Input
+                              id="collateral-address"
+                              placeholder="Contoh: 0x..."
+                              value={newAsset.contractAddress}
+                              onChange={(e) =>
+                                setNewAsset({
+                                  ...newAsset,
+                                  contractAddress: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
                         </div>
-                        <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button className="text-white" onClick={() => handleAddAsset('collateral')}>Simpan</Button></DialogClose></DialogFooter>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="outline">Batal</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button
+                              className="text-white"
+                              onClick={() => handleAddAsset("collateral")}
+                            >
+                              Simpan
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </TabsContent>
@@ -561,15 +611,66 @@ const AdminDashboard = () => {
                       </TableBody>
                     </Table>
                     {/* ... (Dialog tambah aset pinjaman tidak berubah) */}
-                    <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah Aset Pinjaman</Button></DialogTrigger>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full mt-4">
+                          <PlusCircle className="w-4 h-4 mr-2" />
+                          Tambah Aset Pinjaman
+                        </Button>
+                      </DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle></DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2"><Label htmlFor="loan-name">Nama Aset</Label><Input id="loan-name" placeholder="Contoh: Rupiah Token" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div>
-                          <div className="space-y-2"><Label htmlFor="loan-symbol">Simbol</Label><Input id="loan-symbol" placeholder="Contoh: IDRX" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div>
-                          <div className="space-y-2"><Label htmlFor="loan-address">Contract Address</Label><Input id="loan-address" placeholder="Contoh: 0x..." value={newAsset.contractAddress} onChange={(e) => setNewAsset({ ...newAsset, contractAddress: e.target.value, })} /></div>
+                        <DialogHeader>
+                          <DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="loan-name">Nama Aset</Label>
+                            <Input
+                              id="loan-name"
+                              placeholder="Contoh: Rupiah Token"
+                              value={newAsset.name}
+                              onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="loan-symbol">Simbol</Label>
+                            <Input
+                              id="loan-symbol"
+                              placeholder="Contoh: IDRX"
+                              value={newAsset.symbol}
+                              onChange={(e) =>
+                                setNewAsset({ ...newAsset, symbol: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="loan-address">Contract Address</Label>
+                            <Input
+                              id="loan-address"
+                              placeholder="Contoh: 0x..."
+                              value={newAsset.contractAddress}
+                              onChange={(e) =>
+                                setNewAsset({
+                                  ...newAsset,
+                                  contractAddress: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
                         </div>
-                        <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button className="text-white" onClick={() => handleAddAsset('loanable')}>Simpan</Button></DialogClose></DialogFooter>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="outline">Batal</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button
+                              className="text-white"
+                              onClick={() => handleAddAsset("loanable")}
+                            >
+                              Simpan
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </TabsContent>
@@ -579,38 +680,103 @@ const AdminDashboard = () => {
 
             {/* Card Parameter Pinjaman */}
             <Card>
-              <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" />Parameter Pinjaman</CardTitle><CardDescription>Atur parameter global dan LTV spesifik untuk setiap aset jaminan.</CardDescription></CardHeader>
-              <CardContent className="pt-0 px-6 pb-6 space-y-6">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Parameter Pinjaman
+                </CardTitle>
+                <CardDescription>
+                  Atur parameter global dan LTV spesifik untuk setiap aset jaminan.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-6 pb-6 pt-0 space-y-6">
                 <div>
-                  <h3 className="font-semibold mb-2 text-base">Parameter Global</h3>
-                  <div className="p-6 rounded-lg bg-muted space-y-4">
+                  <h3 className="mb-2 text-base font-semibold">Parameter Global</h3>
+                  <div className="p-6 space-y-4 rounded-lg bg-muted">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label htmlFor="interest-model">Model Bunga</Label><Select value={globalParams.interestModel} onValueChange={(value) => setGlobalParams({ ...globalParams, interestModel: value })}><SelectTrigger id="interest-model"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Linear">Linear</SelectItem><SelectItem value="Majemuk">Majemuk</SelectItem></SelectContent></Select></div>
+                      <div className="space-y-2">
+                        <Label htmlFor="interest-model">Model Bunga</Label>
+                        <Select
+                          value={globalParams.interestModel}
+                          onValueChange={(value) =>
+                            setGlobalParams({ ...globalParams, interestModel: value })
+                          }
+                        >
+                          <SelectTrigger id="interest-model">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Linear">Linear</SelectItem>
+                            <SelectItem value="Majemuk">Majemuk</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="liq-penalty">Penalti Likuidasi (%)</Label>
                         {/* --- PERUBAHAN: Input dengan format angka otomatis --- */}
-                        <Input id="liq-penalty" value={formatNumber(globalParams.liquidationPenalty)} onChange={(e) => setGlobalParams({ ...globalParams, liquidationPenalty: e.target.value.replace(/[^0-9]/g, "") })} />
+                        <Input
+                          id="liq-penalty"
+                          value={formatNumber(globalParams.liquidationPenalty)}
+                          onChange={(e) =>
+                            setGlobalParams({
+                              ...globalParams,
+                              liquidationPenalty: e.target.value.replace(/[^0-9]/g, ""),
+                            })
+                          }
+                        />
                       </div>
                     </div>
-                    <Button className="w-full text-white" onClick={handleSaveGlobalParams}>Simpan Parameter Global</Button>
+                    <Button className="w-full text-white" onClick={handleSaveGlobalParams}>
+                      Simpan Parameter Global
+                    </Button>
                   </div>
                 </div>
+
                 <div>
-                  <h3 className="font-semibold mb-2 text-base">Parameter LTV per Aset</h3>
-                  <div className="space-y-3 p-6 rounded-lg bg-muted">
-                    <div className="space-y-2"><Label>Pilih Aset</Label>
-                      <Select onValueChange={setSelectedLtvAsset}><SelectTrigger><SelectValue placeholder="Pilih aset untuk diubah..." /></SelectTrigger>
-                        <SelectContent>{collateralAssets.map((asset) => (<SelectItem key={asset.symbol} value={asset.symbol}>{asset.name} ({asset.symbol})</SelectItem>))}</SelectContent>
+                  <h3 className="mb-2 text-base font-semibold">Parameter LTV per Aset</h3>
+                  <div className="p-6 space-y-3 rounded-lg bg-muted">
+                    <div className="space-y-2">
+                      <Label>Pilih Aset</Label>
+                      <Select onValueChange={setSelectedLtvAsset}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih aset untuk diubah..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {collateralAssets.map((asset) => (
+                            <SelectItem key={asset.symbol} value={asset.symbol}>
+                              {asset.name} ({asset.symbol})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </div>
+
                     {selectedAssetForLtv && (
-                      <div className="space-y-4 pt-2">
-                        <p className="text-sm">LTV saat ini untuk {selectedAssetForLtv.name}: <span className="font-bold">{selectedAssetForLtv.ltv}%</span></p>
+                      <div className="pt-2 space-y-4">
+                        <p className="text-sm">
+                          LTV saat ini untuk {selectedAssetForLtv.name}:{" "}
+                          <span className="font-bold">{selectedAssetForLtv.ltv}%</span>
+                        </p>
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="new-ltv" className="whitespace-nowrap">LTV Baru (%):</Label>
+                          <Label htmlFor="new-ltv" className="whitespace-nowrap">
+                            LTV Baru (%):
+                          </Label>
                           {/* --- PERUBAHAN: Input dengan format angka otomatis --- */}
-                          <Input id="new-ltv" placeholder="Contoh: 75" value={formatNumber(newLtv)} onChange={(e) => setNewLtv(e.target.value.replace(/[^0-9]/g, ""))} />
-                          <Button size="sm" className="h-9 text-white" onClick={handleSaveAssetParam}>Simpan</Button>
+                          <Input
+                            id="new-ltv"
+                            placeholder="Contoh: 75"
+                            value={formatNumber(newLtv)}
+                            onChange={(e) =>
+                              setNewLtv(e.target.value.replace(/[^0-9]/g, ""))
+                            }
+                          />
+                          <Button
+                            size="sm"
+                            className="h-9 text-white"
+                            onClick={handleSaveAssetParam}
+                          >
+                            Simpan
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -621,23 +787,93 @@ const AdminDashboard = () => {
 
             {/* Card Manajemen Likuiditas */}
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-500" />Manajemen Likuiditas & Likuidasi</CardTitle><CardDescription>Kelola likuiditas pool dan lakukan tindakan likuidasi.</CardDescription></CardHeader>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle 
+                    className="h-5 w-5 text-red-500" 
+                  />Manajemen Likuiditas & Likuidasi
+                </CardTitle>
+                <CardDescription>
+                  Kelola likuiditas pool dan lakukan tindakan likuidasi.
+                </CardDescription>
+              </CardHeader>
+
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-semibold mb-2">Pinjaman Berisiko (Undercollateralized)</h3>
+                  <h3 className="mb-2 font-semibold">Pinjaman Berisiko (Undercollateralized)</h3>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Pengguna</TableHead><TableHead>Health Factor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>{undercollateralizedLoans.map((loan) => (<TableRow key={loan.id}><TableCell className="font-medium text-foreground">{loan.userName}</TableCell><TableCell className="font-mono text-destructive">{loan.healthFactor}</TableCell><TableCell className="text-right"><Button size="sm" variant="destructive" onClick={() => { setLoanToLiquidate(loan.id); setIsConfirmDialogOpen(true); }}>Likuidasi</Button></TableCell></TableRow>))}</TableBody>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pengguna</TableHead>
+                        <TableHead>Health Factor</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {undercollateralizedLoans.map((loan) => (
+                        <TableRow key={loan.id}>
+                          <TableCell className="font-medium text-foreground">
+                            {loan.userName}
+                          </TableCell>
+                          <TableCell className="font-mono text-destructive">
+                            {loan.healthFactor}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setLoanToLiquidate(loan.id);
+                                setIsConfirmDialogOpen(true);
+                              }}
+                            >
+                              Likuidasi
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
                   </Table>
                 </div>
+                
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold mb-2">Pool Likuiditas</h3>
                     <Card className="bg-muted">
                       <CardContent className="pt-6">
-                        <div className="space-y-1 mb-4"><p className="text-muted-foreground">Total Nilai Likuiditas</p><p className="text-2xl font-bold">Rp {totalPoolValue.toLocaleString("id-ID")}</p></div>
+                        <div className="space-y-1 mb-4">
+                          <p className="text-muted-foreground">Total Nilai Likuiditas</p>
+                          <p className="text-2xl font-bold">Rp {totalPoolValue.toLocaleString("id-ID")}</p>
+                        </div>
                         <div className="space-y-4 border-t pt-4">
-                          {liquidityPool.filter((asset) => asset.amount > 0).map((asset) => (<div key={asset.id} className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold ${asset.color}`}>{asset.symbol}</div><div><p className="font-semibold text-foreground">{asset.symbol}</p><p className="text-sm text-muted-foreground">{asset.name}</p></div></div><div className="text-right"><p className="font-semibold text-foreground tabular-nums">{asset.amount.toLocaleString("id-ID", { maximumFractionDigits: 8, })}</p><p className="text-sm text-muted-foreground tabular-nums">Rp {(asset.amount * asset.rate).toLocaleString("id-ID")}</p></div></div>))}
+                          {liquidityPool
+                            .filter((asset) => asset.amount > 0)
+                            .map((asset) => (
+                              <div key={asset.id} className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`flex h-10 w-10 items-center justify-center rounded-full text-base font-bold text-white ${asset.color}`}
+                                  >
+                                    {asset.symbol}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-foreground">{asset.symbol}</p>
+                                    <p className="text-sm text-muted-foreground">{asset.name}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-semibold text-foreground tabular-nums">
+                                    {asset.amount.toLocaleString("id-ID", {
+                                      maximumFractionDigits: 8,
+                                    })}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground tabular-nums">
+                                    Rp{" "}
+                                    {(asset.amount * asset.rate).toLocaleString("id-ID")}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                         </div>
                         <div className="flex gap-2 mt-4">
                           {/* Dialog untuk Tambah Likuiditas */}
@@ -782,7 +1018,11 @@ const AdminDashboard = () => {
                       <CardContent className="pt-6">
                         <div className="flex justify-between items-center">
                           <div><p className="text-muted-foreground">Dana Tersedia</p><p className="text-xl font-bold">Rp {liquidatedFunds.amount.toLocaleString("id-ID")}</p></div>
-                          <DialogTrigger asChild><Button className="text-white" onClick={() => { setLiquidatedWithdrawalAmount(""); setLiquidatedWithdrawalError(""); }}><ChevronsRight className="w-4 h-4 mr-2 text-white" />Tarik Dana</Button></DialogTrigger>
+                          <DialogTrigger asChild>
+                            <Button className="text-white" onClick={() => { setLiquidatedWithdrawalAmount(""); setLiquidatedWithdrawalError(""); }}>
+                              <ChevronsRight className="w-4 h-4 mr-2 text-white" />Tarik Dana
+                            </Button>
+                          </DialogTrigger>
                         </div>
                       </CardContent>
                     </Card>
@@ -796,29 +1036,119 @@ const AdminDashboard = () => {
 
         {/* Dialog Tarik Dana Likuidasi */}
         <DialogContent>
-          <DialogHeader><DialogTitle>Konfirmasi Penarikan Dana</DialogTitle><DialogDescription>Masukkan jumlah dana yang ingin Anda tarik.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Penarikan Dana</DialogTitle>
+            <DialogDescription>
+              Masukkan jumlah dana yang ingin Anda tarik.
+            </DialogDescription>
+          </DialogHeader>
+
           <div className="py-4 space-y-4">
-            <div className="space-y-2"><Label>Jumlah Penarikan (Rupiah)</Label>
+            <div className="space-y-2">
+              <Label>Jumlah Penarikan (Rupiah)</Label>
               <div className="relative">
-                {/* --- PERUBAHAN: Input dengan format angka otomatis --- */}
-                <Input id="liquidated-amount" type="text" inputMode="numeric" placeholder="Masukkan jumlah" value={liquidatedWithdrawalAmount} onChange={(e) => { const value = e.target.value; const numericValue = parseFormattedNumber(value); setLiquidatedWithdrawalAmount(formatNumber(value)); if (numericValue > liquidatedFunds.amount) { setLiquidatedWithdrawalError(`Jumlah melebihi dana yang tersedia (Rp ${formatNumber(liquidatedFunds.amount.toString())}).`); } else { setLiquidatedWithdrawalError(""); } }} />
-                <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3" onClick={() => { setLiquidatedWithdrawalAmount(formatNumber(liquidatedFunds.amount.toString())); setLiquidatedWithdrawalError(""); }}>Max</Button>
+                <Input
+                  id="liquidated-amount"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Masukkan jumlah"
+                  value={liquidatedWithdrawalAmount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numericValue = parseFormattedNumber(value);
+                    setLiquidatedWithdrawalAmount(formatNumber(value));
+                    if (numericValue > liquidatedFunds.amount) {
+                      setLiquidatedWithdrawalError(
+                        `Jumlah melebihi dana yang tersedia (Rp ${formatNumber(
+                          liquidatedFunds.amount.toString()
+                        )}).`
+                      );
+                    } else {
+                      setLiquidatedWithdrawalError("");
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 h-8 -translate-y-1/2 px-3"
+                  onClick={() => {
+                    setLiquidatedWithdrawalAmount(
+                      formatNumber(liquidatedFunds.amount.toString())
+                    );
+                    setLiquidatedWithdrawalError("");
+                  }}
+                >
+                  Max
+                </Button>
               </div>
-              {liquidatedWithdrawalError && (<Alert variant="destructive" className="mt-2 text-xs"><AlertCircle className="h-4 w-4" /><AlertDescription>{liquidatedWithdrawalError}</AlertDescription></Alert>)}
+              {liquidatedWithdrawalError && (
+                <Alert variant="destructive" className="mt-2 text-xs">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{liquidatedWithdrawalError}</AlertDescription>
+                </Alert>
+              )}
             </div>
-            <div className="space-y-1 border-t pt-4"><p className="text-sm text-muted-foreground">Akan Ditarik ke Akun Bank:</p><div className="p-3 border rounded-md bg-background"><p className="font-semibold">{liquidatedFunds.bankInfo.bankName}</p><p className="text-sm text-muted-foreground">{liquidatedFunds.bankInfo.accountNumber} a.n. {liquidatedFunds.bankInfo.accountHolder}</p></div></div>
+
+            <div className="space-y-1 border-t pt-4">
+              <p className="text-sm text-muted-foreground">
+                Akan Ditarik ke Akun Bank:
+              </p>
+              <div className="rounded-md border bg-background p-3">
+                <p className="font-semibold">{liquidatedFunds.bankInfo.bankName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {liquidatedFunds.bankInfo.accountNumber} a.n.{" "}
+                  {liquidatedFunds.bankInfo.accountHolder}
+                </p>
+              </div>
+            </div>
           </div>
+
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-            <Button variant="destructive" onClick={handleWithdrawLiquidated} disabled={!!liquidatedWithdrawalError || numericLiquidatedWithdrawalAmount <= 0 || !liquidatedWithdrawalAmount}>Konfirmasi Penarikan</Button>
+            <DialogClose asChild>
+              <Button variant="outline">Batal</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleWithdrawLiquidated}
+              disabled={
+                !!liquidatedWithdrawalError ||
+                numericLiquidatedWithdrawalAmount <= 0 ||
+                !liquidatedWithdrawalAmount
+              }
+            >
+              Konfirmasi Penarikan
+            </Button>
           </DialogFooter>
         </DialogContent>
 
         {/* Dialog Konfirmasi Likuidasi */}
         <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
           <DialogContent>
-            <DialogHeader><DialogTitle className="mb-2.5">Konfirmasi Likuidasi Pinjaman</DialogTitle><DialogDescription>Anda akan melakukan likuidasi untuk pinjaman <span className="font-bold">{loanToLiquidate}</span>. Tindakan ini tidak dapat dibatalkan. Pastikan Anda memahami risikonya.</DialogDescription></DialogHeader>
-            <DialogFooter className="mt-2.5"><DialogClose asChild><Button variant="outline">Batalkan</Button></DialogClose><Button variant="destructive" onClick={() => { if (loanToLiquidate) { handleLiquidate(loanToLiquidate); } }}>Konfirmasi Likuidasi</Button></DialogFooter>
+            <DialogHeader>
+              <DialogTitle className="mb-2.5">Konfirmasi Likuidasi Pinjaman</DialogTitle>
+              <DialogDescription>
+                Anda akan melakukan likuidasi untuk pinjaman{" "}
+                <span className="font-bold">{loanToLiquidate}</span>. Tindakan ini
+                tidak dapat dibatalkan. Pastikan Anda memahami risikonya.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-2.5">
+              <DialogClose asChild>
+                <Button variant="outline">Batalkan</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (loanToLiquidate) {
+                    handleLiquidate(loanToLiquidate);
+                  }
+                }}
+              >
+                Konfirmasi Likuidasi
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

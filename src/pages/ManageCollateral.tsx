@@ -50,13 +50,16 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const ManageCollateral = () => {
+  //state untuk Popup konfirmasi Deposit & Tarik Jaminan
   const [isDepositConfirmOpen, setDepositConfirmOpen] = useState(false);
   const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
 
+//state untuk Deposit Jaminan
   const [depositAmount, setDepositAmount] = useState("");
   const [depositCollateralType, setDepositCollateralType] = useState("");
   const [depositStatus, setDepositStatus] = useState("ready");
 
+  //state untuk Tarik Jaminan
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalCollateralType, setWithdrawalCollateralType] = useState("");
   const [withdrawalStatus, setWithdrawalStatus] = useState("ready");
@@ -107,6 +110,13 @@ const ManageCollateral = () => {
       status: "Selesai",
     },
   ];
+
+  const [dummyWalletBalances, setDummyWalletBalances] = useState({
+    bitcoin: 2.5,
+    ethereum: 15.75,
+    usdt: 10000,
+    usdc: 5000,
+  });
 
   const cryptoRates = {
     bitcoin: 1000000000,
@@ -287,6 +297,22 @@ const ManageCollateral = () => {
     0
   );
 
+  const handleSetMaxDeposit = () => {
+    if (!depositCollateralType) {
+      toast({
+        variant: "destructive",
+        title: "Pilih Jenis Crypto",
+        description: "Silakan pilih jenis crypto terlebih dahulu.",
+      });
+      return;
+    }
+
+    const maxAmount = dummyWalletBalances[depositCollateralType as keyof typeof dummyWalletBalances] || 0;
+    // Format angka dengan koma sebagai pemisah desimal jika diperlukan
+    const formattedAmount = maxAmount.toString().replace(".", ",");
+    setDepositAmount(formatNumber(formattedAmount));
+  };
+
   return (
     <>
       <div className="min-h-screen bg-background">
@@ -346,14 +372,26 @@ const ManageCollateral = () => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="amount">Jumlah</Label>
-                        <Input
-                          id="amount"
-                          placeholder="0,001"
-                          value={depositAmount}
-                          onChange={(e) =>
-                            setDepositAmount(formatNumber(e.target.value))
-                          }
-                        />
+                        <div className="relative">
+                          <Input
+                            id="amount"
+                            placeholder="0,001"
+                            value={depositAmount}
+                            onChange={(e) =>
+                              setDepositAmount(formatNumber(e.target.value))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
+                            onClick={handleSetMaxDeposit}
+                            disabled={!depositCollateralType}
+                          >
+                            Max
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
