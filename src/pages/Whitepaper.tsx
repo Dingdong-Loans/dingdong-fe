@@ -545,7 +545,7 @@ const Whitepaper = () => {
               </p>
 
               <div className="flex justify-center gap-4 mb-8">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
                   <Download className="w-5 h-5 mr-2" />
                   {currentContent.downloadPdf}
                 </Button>
@@ -913,23 +913,26 @@ const Whitepaper = () => {
 
             {/* Download Section */}
             <section className="mb-12">
-              <Card className="bg-accent border-primary/20">
+              <Card className="bg-muted-foreground border-primary/20 text-white">
                 <CardContent className="text-center py-12">
                   <h3 className="text-2xl font-bold mb-4">
                     {currentContent.getFullWhitepaper.title}
                   </h3>
-                  <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+                  <p className="text-white mb-8 max-w-2xl mx-auto">
                     {currentContent.getFullWhitepaper.description}
                   </p>
                   <div className="flex justify-center gap-4">
                     <Button
                       size="lg"
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-primary hover:bg-primary/90 text-white"
                     >
                       <Download className="w-5 h-5 mr-2" />
                       {currentContent.getFullWhitepaper.downloadFull}
                     </Button>
-                    <Button variant="outline" size="lg">
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      className="text-muted-foreground">
                       <BookOpen className="w-5 h-5 mr-2" />
                       {currentContent.getFullWhitepaper.viewGithub}
                     </Button>

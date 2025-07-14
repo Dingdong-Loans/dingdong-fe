@@ -138,7 +138,7 @@ const ApplyLoan = () => {
                     <div className="flex justify-between"><span>Cicilan Bulanan:</span><span className="font-medium">Rp {monthlyPayment.toLocaleString('id-ID')}</span></div>
                   </div>
                 </div>
-                <Button className="w-full" size="lg" onClick={proceedToDashboard}>Kembali ke Dashboard <ArrowRight className="w-4 h-4 ml-2" /></Button>
+                <Button className="w-full text-white" size="lg" onClick={proceedToDashboard}>Kembali ke Dashboard <ArrowRight className="w-4 h-4 ml-2" /></Button>
               </CardContent>
             </Card>
           </div>

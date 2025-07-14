@@ -89,7 +89,7 @@ const AdminDashboard = () => {
       name: "Ethereum",
       symbol: "ETH",
       contractAddress: "0x789...",
-      status: "Aktif",
+      status: "Non-aktif",
       ltv: "65",
     },
     {
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
     const newEntry = {
       id: `new-${Date.now()}`,
       ...newAsset,
-      status: "Active",
+      status: "Aktif",
       ...(type === "collateral" && { ltv: "0" }),
     };
     if (type === "collateral") {
@@ -523,6 +523,17 @@ const AdminDashboard = () => {
                       </TableBody>
                     </Table>
                     {/* ... (Dialog tambah aset tidak berubah) */}
+                    <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah Aset Jaminan</Button></DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Tambah Aset Jaminan Baru</DialogTitle></DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2"><Label htmlFor="collateral-name">Nama Aset</Label><Input id="collateral-name" placeholder="Contoh: Bitcoin" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div>
+                          <div className="space-y-2"><Label htmlFor="collateral-symbol">Simbol</Label><Input id="collateral-symbol" placeholder="Contoh: BTC" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div>
+                          <div className="space-y-2"><Label htmlFor="collateral-address">Contract Address</Label><Input id="collateral-address" placeholder="Contoh: 0x..." value={newAsset.contractAddress} onChange={(e) => setNewAsset({ ...newAsset, contractAddress: e.target.value, })} /></div>
+                        </div>
+                        <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button className="text-white" onClick={() => handleAddAsset('collateral')}>Simpan</Button></DialogClose></DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </TabsContent>
 
                   <TabsContent value="lendable" className="mt-4">
@@ -549,7 +560,18 @@ const AdminDashboard = () => {
                         ))}
                       </TableBody>
                     </Table>
-                    {/* ... (Dialog tambah aset tidak berubah) */}
+                    {/* ... (Dialog tambah aset pinjaman tidak berubah) */}
+                    <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="mt-4 w-full"><PlusCircle className="w-4 h-4 mr-2" />Tambah Aset Pinjaman</Button></DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Tambah Aset Pinjaman Baru</DialogTitle></DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2"><Label htmlFor="loan-name">Nama Aset</Label><Input id="loan-name" placeholder="Contoh: Rupiah Token" value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} /></div>
+                          <div className="space-y-2"><Label htmlFor="loan-symbol">Simbol</Label><Input id="loan-symbol" placeholder="Contoh: IDRX" value={newAsset.symbol} onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })} /></div>
+                          <div className="space-y-2"><Label htmlFor="loan-address">Contract Address</Label><Input id="loan-address" placeholder="Contoh: 0x..." value={newAsset.contractAddress} onChange={(e) => setNewAsset({ ...newAsset, contractAddress: e.target.value, })} /></div>
+                        </div>
+                        <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><DialogClose asChild><Button className="text-white" onClick={() => handleAddAsset('loanable')}>Simpan</Button></DialogClose></DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </TabsContent>
                 </Tabs>
               </CardContent>
