@@ -1403,6 +1403,9 @@ const Whitepaper = () => {
                       {section.distribution && (
                         <div className="overflow-x-auto mt-4">
                           <table className="w-full border-collapse border border-gray-300">
+                            <caption>
+                              {language === "id" ? "Distribusi Token" : "Token Distribution"}
+                            </caption>
                             <thead>
                               <tr className="bg-gray-50">
                                 <th className="border border-gray-300 p-3 text-left">
