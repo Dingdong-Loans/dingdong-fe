@@ -447,6 +447,35 @@ const AdminDashboard = () => {
     setIsWithdrawDialogOpen(false);
   };
 
+  // --- FUNGSI BARU: Fungsi untuk mengatur jumlah maksimum likuiditas yang bisa ditambahkan ---
+  const handleSetMaxPool = () => {
+    // Pastikan sudah ada aset yang dipilih
+    if (!poolAction.asset) {
+      toast({
+        variant: "destructive",
+        title: "Pilih Aset Terlebih Dahulu",
+        description: "Anda harus memilih aset untuk dapat menggunakan tombol MAX.",
+        className: "border-red-500 bg-red-50 text-red-700",
+      });
+      return;
+    }
+
+    // Cari aset yang dipilih di dalam state liquidityPool
+    const selectedAsset = liquidityPool.find(a => a.name === poolAction.asset);
+
+    if (selectedAsset) {
+      // Ubah angka menjadi string dengan format ribuan (titik) dan koma untuk desimal
+      const maxAmountStr = selectedAsset.amount.toString().replace('.', ',');
+      setPoolAction({
+        ...poolAction,
+        // Gunakan fungsi formatNumber yang sudah ada untuk memformat tampilan
+        amount: formatNumber(maxAmountStr)
+      });
+      // Kosongkan pesan error jika ada
+      setWithdrawalError("");
+    }
+  };
+
   const numericLiquidatedWithdrawalAmount = parseFormattedNumber(liquidatedWithdrawalAmount);
 
   if (loading) {
@@ -903,13 +932,30 @@ const AdminDashboard = () => {
                                   </Select>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>Jumlah</Label>
-                                  {/* --- PERUBAHAN: Menggunakan fungsi formatNumber pada onChange --- */}
-                                  <Input
-                                    placeholder="Masukkan jumlah"
-                                    value={poolAction.amount}
-                                    onChange={(e) => setPoolAction({ ...poolAction, amount: formatNumber(e.target.value) })}
-                                  />
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="add-liquidity-amount" className="text-right">
+                                      Jumlah
+                                    </Label>
+                                  </div>
+                                  <div className="relative">
+                                    <Input
+                                      id="add-liquidity-amount"
+                                      placeholder="Masukkan jumlah"
+                                      value={poolAction.amount}
+                                      onChange={(e) => setPoolAction({ ...poolAction, amount: formatNumber(e.target.value) })}
+                                      className="pr-14"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-1 top-1/2 h-8 -translate-y-1/2 px-3"
+                                      onClick={handleSetMaxPool}
+                                      disabled={!poolAction.asset}
+                                    >
+                                      Max
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                               <DialogFooter>
