@@ -17,9 +17,9 @@ const Footer = () => {
       {/* ================================================================== */}
       {/* ================= BAGIAN BARU: "CONTACT US" (PUTIH) ================ */}
       {/* ================================================================== */}
-      <div className="bg-white py-20">
-        <div className="container mx-auto px-20">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+      <div className="bg-white">
+        <div className="container mx-auto px-20 pb-16 pt-12">
+          <div className="grid md:grid-cols-2 gap-24 items-center">
             {/* Kolom Kiri: Teks dan Info Kontak */}
             <div className="space-y-6">
               <h2 className="text-4xl font-bold text-foreground">Contact Us</h2>
@@ -27,7 +27,7 @@ const Footer = () => {
                 If you have any questions contact us via email or phone call. We will
                 be very happy to help you!
               </p>
-              <div className="space-y-4 pt-4">
+              <div className="space-y-8 pt-4">
                 <div className="flex items-center gap-4">
                   <Phone className="w-5 h-5 text-primary" />
                   <span className="text-foreground">470-601-1911</span>
@@ -53,14 +53,13 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* Kolom Kanan: Placeholder untuk Gambar */}
+            {/* Kolom Kanan: Gambar */}
             <div>
-              <div>
+              <div className="relative h-[550px]"> {/* Added relative and fixed height for image container */}
                 <img
-                  src="/images/footer-image(1).png"
+                  src="/images/footer-image-3.png" //  <-- UBAH INI KE LOKASI GAMBAR ANDA
                   alt="Tim kami siap membantu Anda"
-                  className="w-full rounded-lg"
-                  style={{ maxHeight: '384px', objectFit: 'contain' }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-lg" // <-- UBAH CLASS INI
                 />
               </div>
             </div>

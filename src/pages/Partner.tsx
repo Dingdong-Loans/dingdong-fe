@@ -101,8 +101,14 @@ const Partner: React.FC = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-primary py-20">
-        <div className="container mx-auto px-4 text-center">
+      <section className="relative py-20 px-20">
+        <img
+          src="/images/about-us-hero.jpg"
+          alt="Deskripsi gambar hero Anda"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 opacity-70"></div>
+        <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
             Bermitra dengan Kami
           </h1>
@@ -245,13 +251,13 @@ const Partner: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Komisi hingga 8%
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Crypto Training
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     24/7 Support
                   </span>
                 </div>
@@ -270,13 +276,13 @@ const Partner: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Blockchain API
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Smart Contract
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     DeFi Integration
                   </span>
                 </div>
@@ -295,13 +301,13 @@ const Partner: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Yield hingga 15%
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Multi-Asset Support
                   </span>
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Risk Management
                   </span>
                 </div>
@@ -528,7 +534,7 @@ const Partner: React.FC = () => {
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full"
+                      className="w-full text-white"
                       size="lg"
                     >
                       {isSubmitting ? (

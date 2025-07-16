@@ -619,7 +619,7 @@ const TermsAndGuidelines = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-20 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -689,7 +689,7 @@ const TermsAndGuidelines = () => {
                           onClick={() => scrollToSection(section.id)}
                           className="flex items-center gap-3 w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm"
                         >
-                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <Icon className="h-4 w-4 text-primary" />
                           <span>{section.title}</span>
                         </button>
                       );
@@ -715,9 +715,9 @@ const TermsAndGuidelines = () => {
                   {currentContent.definitions.content.map((item, index) => (
                     <div
                       key={index}
-                      className="border-l-4 border-blue-200 pl-4"
+                      className="border-l-4 border-primary pl-4"
                     >
-                      <h4 className="font-semibold text-blue-800">
+                      <h4 className="font-semibold text-black">
                         {item.term}
                       </h4>
                       <p className="text-muted-foreground">{item.definition}</p>
