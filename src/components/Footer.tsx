@@ -57,9 +57,10 @@ const Footer = () => {
             <div>
               <div>
                 <img
-                  src="/images/contact-us-footer.jpg"
-                  alt="Layanan pelanggan kami"
-                  className="h-96 w-full object-cover rounded-lg"
+                  src="/images/footer-image(1).png"
+                  alt="Tim kami siap membantu Anda"
+                  className="w-full rounded-lg"
+                  style={{ maxHeight: '384px', objectFit: 'contain' }}
                 />
               </div>
             </div>

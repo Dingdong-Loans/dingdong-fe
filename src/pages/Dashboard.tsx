@@ -48,6 +48,9 @@ const Dashboard = () => {
   const [repaymentType, setRepaymentType] = useState("monthly");
   const [customAmount, setCustomAmount] = useState("");
 
+  // Di dalam komponen Dashboard, dekat useState lainnya
+  const [walletBalance, setWalletBalance] = useState(150000000); // Contoh saldo awal: 150 Juta IDRX
+
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
@@ -184,42 +187,61 @@ const Dashboard = () => {
 
   const paymentAmount = getRepaymentAmount();
 
+  // Ganti fungsi lama dengan yang ini
   const handlePaymentSubmit = () => {
-    // Simulasi kemungkinan gagal atau berhasil
-    const isSuccess = Math.random() > 0.3; // 70% kemungkinan berhasil
-    
+    // Pastikan ada pinjaman yang dipilih
+    if (!selectedLoan) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Tidak ada pinjaman yang dipilih untuk dibayar.",
+      });
+      return; // Hentikan fungsi jika tidak ada pinjaman terpilih
+    }
+
+    // 1. Ambil jumlah yang harus dibayar
+    const paymentAmount = getRepaymentAmount();
+
+    // 2. Bandingkan saldo dompet dengan jumlah pembayaran
+    const isSuccess = walletBalance >= paymentAmount;
+
     if (isSuccess) {
-      // --- Logika untuk notifikasi BERHASIL (tidak berubah) ---
+      // --- Logika jika BERHASIL (saldo cukup) ---
+
+      // Kurangi saldo dompet (opsional, tapi membuat simulasi lebih baik)
+      setWalletBalance(walletBalance - paymentAmount);
+
       toast({
         title: "Pembayaran Berhasil",
         description: (
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
             <span>
-              Pembayaran untuk {selectedLoan?.id} sedang diproses.
+              Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} IDRX berhasil.
             </span>
           </div>
         ),
         className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
       });
+
     } else {
-      // --- PERUBAHAN: Logika untuk notifikasi GAGAL ---
+      // --- Logika jika GAGAL (saldo tidak cukup) ---
       toast({
-        variant: "destructive", // Varian 'destructive' akan menggunakan warna merah
+        variant: "destructive",
         title: "Pembayaran Gagal",
         description: (
           <div className="flex items-center gap-2">
             <XCircle className="h-5 w-5" />
             <span>
-              Terjadi masalah saat memproses pembayaran. Silakan coba lagi.
+              Saldo dompet tidak mencukupi untuk membayar {paymentAmount.toLocaleString('id-ID')} IDRX.
             </span>
           </div>
         ),
-        // Menambahkan kelas untuk border dan latar belakang merah
         className: "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
       });
     }
 
+    // Tutup modal setelah notifikasi muncul
     setIsPaymentDialogOpen(false);
   };
 

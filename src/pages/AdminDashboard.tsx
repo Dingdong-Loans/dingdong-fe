@@ -57,6 +57,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
+
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [loanToLiquidate, setLoanToLiquidate] = useState<string | null>(null);
+
+  const [undercollateralizedLoans, setUndercollateralizedLoans] = useState([
+    { id: "LOAN-101", userName: "Budi Santoso", healthFactor: 0.5 },
+    { id: "LOAN-102", userName: "Citra Lestari", healthFactor: 0.4 },
+  ]);
+
+  const [liquidatedFunds, setLiquidatedFunds] = useState({
+    amount: 12500000,
+    asset: "IDRX",
+    bankInfo: {
+      bankName: "Bank Central Asia (BCA)",
+      accountNumber: "8880123456",
+      accountHolder: "PT Dingdong Finansial",
+    },
+  });
+
+  const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
+
+  const [withdrawalError, setWithdrawalError] = useState("");
+  const [liquidatedWithdrawalAmount, setLiquidatedWithdrawalAmount] = useState("");
+  const [liquidatedWithdrawalError, setLiquidatedWithdrawalError] = useState("");
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,30 +172,6 @@ const AdminDashboard = () => {
     asset: "",
     amount: "",
   });
-
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [loanToLiquidate, setLoanToLiquidate] = useState<string | null>(null);
-
-  const [undercollateralizedLoans, setUndercollateralizedLoans] = useState([
-    { id: "LOAN-101", userName: "Budi Santoso", healthFactor: 0.5 },
-    { id: "LOAN-102", userName: "Citra Lestari", healthFactor: 0.4 },
-  ]);
-
-  const [liquidatedFunds, setLiquidatedFunds] = useState({
-    amount: 12500000,
-    asset: "IDRX",
-    bankInfo: {
-      bankName: "Bank Central Asia (BCA)",
-      accountNumber: "8880123456",
-      accountHolder: "PT Dingdong Finansial",
-    },
-  });
-
-  const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
-
-  const [withdrawalError, setWithdrawalError] = useState("");
-  const [liquidatedWithdrawalAmount, setLiquidatedWithdrawalAmount] = useState("");
-  const [liquidatedWithdrawalError, setLiquidatedWithdrawalError] = useState("");
 
   const selectedAssetForLtv = collateralAssets.find(
     (a) => a.symbol === selectedLtvAsset
@@ -476,6 +477,37 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleStatusChange = (
+    assetId: string,
+    newStatus: string,
+    type: "collateral" | "loanable"
+  ) => {
+    if (type === "collateral") {
+      setCollateralAssets((prevAssets) =>
+        prevAssets.map((asset) =>
+          asset.id === assetId ? { ...asset, status: newStatus } : asset
+        )
+      );
+    } else {
+      setLoanableAssets((prevAssets) =>
+        prevAssets.map((asset) =>
+          asset.id === assetId ? { ...asset, status: newStatus } : asset
+        )
+      );
+    }
+    toast({
+      title: "Status Aset Diperbarui",
+      description: (
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <span>Status aset telah berhasil diperbarui menjadi {newStatus}.</span>
+        </div>
+      ),
+      className: "border-green-500 bg-green-50 text-green-700",
+    });
+  };
+
+
   const numericLiquidatedWithdrawalAmount = parseFormattedNumber(liquidatedWithdrawalAmount);
 
   if (loading) {
@@ -534,16 +566,26 @@ const AdminDashboard = () => {
                           <TableRow key={asset.id}>
                             <TableCell>{asset.name} ({asset.symbol})</TableCell>
                             <TableCell>
-                              {/* --- PERUBAHAN: Badge dengan warna dinamis berdasarkan status --- */}
-                              <Badge variant={
-                                asset.status === 'Aktif' ? 'default' :
-                                  asset.status === 'Dijeda' ? 'secondary' :
-                                    'destructive'
-                              } className={
-                                asset.status === 'Aktif' ? 'bg-primary/20 text-primary-foreground border border-primary/30' :
-                                  asset.status === 'Dijeda' ? 'bg-gray-200 text-gray-800' :
-                                    'bg-red-200 text-red-800'
-                              }>{asset.status}</Badge>
+                              <Select
+                                value={asset.status}
+                                onValueChange={(newStatus) => handleStatusChange(asset.id, newStatus, 'collateral')}
+                              >
+                                <SelectTrigger
+                                  // --- PERUBAHAN: Terapkan kelas warna langsung pada SelectTrigger ---
+                                  className={`w-[120px] h-8 data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2
+        ${asset.status === 'Aktif' ? 'bg-green-100 text-green-700 border-green-300' :
+                                      asset.status === 'Dijeda' ? 'bg-gray-200 text-gray-800 border-gray-300' :
+                                        'bg-red-100 text-red-700 border-red-300'
+                                    }`}
+                                >
+                                  <SelectValue placeholder="Pilih Status" /> {/* SelectValue akan menampilkan teks status */}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Aktif">Aktif</SelectItem>
+                                  <SelectItem value="Dijeda">Dijeda</SelectItem>
+                                  <SelectItem value="Non-aktif">Non-aktif</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => handleDeleteAsset(asset.id, 'collateral')}><Trash2 className="w-4 h-4" /></Button></TableCell>
                           </TableRow>
@@ -623,16 +665,26 @@ const AdminDashboard = () => {
                           <TableRow key={asset.id}>
                             <TableCell>{asset.name} ({asset.symbol})</TableCell>
                             <TableCell>
-                              {/* --- PERUBAHAN: Badge dengan warna dinamis berdasarkan status --- */}
-                              <Badge variant={
-                                asset.status === 'Aktif' ? 'default' :
-                                  asset.status === 'Dijeda' ? 'secondary' :
-                                    'destructive'
-                              } className={
-                                asset.status === 'Aktif' ? 'bg-primary/20 text-primary-foreground border border-primary/30' :
-                                  asset.status === 'Dijeda' ? 'bg-gray-200 text-gray-800' :
-                                    'bg-red-200 text-red-800'
-                              }>{asset.status}</Badge>
+                              <Select
+                                value={asset.status}
+                                onValueChange={(newStatus) => handleStatusChange(asset.id, newStatus, 'loanable')}
+                              >
+                                <SelectTrigger
+                                  // --- PERUBAHAN: Terapkan kelas warna langsung pada SelectTrigger ---
+                                  className={`w-[120px] h-8 data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2
+        ${asset.status === 'Aktif' ? 'bg-green-100 text-green-700 border-green-300' :
+                                      asset.status === 'Dijeda' ? 'bg-gray-200 text-gray-800 border-gray-300' :
+                                        'bg-red-100 text-red-700 border-red-300'
+                                    }`}
+                                >
+                                  <SelectValue placeholder="Pilih Status" /> {/* SelectValue akan menampilkan teks status */}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Aktif">Aktif</SelectItem>
+                                  <SelectItem value="Dijeda">Dijeda</SelectItem>
+                                  <SelectItem value="Non-aktif">Non-aktif</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => handleDeleteAsset(asset.id, 'loanable')}><Trash2 className="w-4 h-4" /></Button></TableCell>
                           </TableRow>
@@ -818,8 +870,8 @@ const AdminDashboard = () => {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle 
-                    className="h-5 w-5 text-red-500" 
+                  <AlertTriangle
+                    className="h-5 w-5 text-red-500"
                   />Manajemen Likuiditas & Likuidasi
                 </CardTitle>
                 <CardDescription>
@@ -864,7 +916,7 @@ const AdminDashboard = () => {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold mb-2">Pool Likuiditas</h3>
