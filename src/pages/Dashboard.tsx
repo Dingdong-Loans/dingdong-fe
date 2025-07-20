@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SkeletonLoader from "@/components/SkeletonLoader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PlusCircle,
@@ -15,7 +15,8 @@ import {
   Banknote,
   HandCoins,
   CheckCircle,
-  XCircle
+  XCircle,
+  RefreshCw
 } from "lucide-react";
 import {
   RadialBarChart,
@@ -35,28 +36,225 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useWallet } from "@/hooks/use-wallet";
+import { useLendingCore, Loan } from "@/hooks/use-lending-core";
+import { SUPPORTED_BORROW_TOKENS, SUPPORTED_COLLATERAL_TOKENS } from "@/lib/contract-utils";
+import { formatEther } from "viem";
 
 const Dashboard = () => {
+  const { address, isConnected, balance, connect } = useWallet();
+  const {
+    loading: contractLoading,
+    error,
+    // Read functions
+    getBorrowTokens,
+    getAvailableSupply,
+    getUserLoan,
+    getCurrentInterestRateBPS,
+    getUtilizationBPS,
+    getTotalSupply,
+    isPaused,
+    // Write functions
+    repay,
+  } = useLendingCore();
+
+  const { toast } = useToast();
+
+  // Refs to prevent infinite loops
+  const isLoadingRef = useRef(false);
+  const lastLoadedTokenRef = useRef<string>('');
+
+  // UI loading state
   const [loading, setLoading] = useState(true);
   const [userName] = useState("Andro");
-  const { toast } = useToast();
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
+  const [selectedLoan, setSelectedLoan] = useState<LoanData | null>(null);
 
   const [repaymentType, setRepaymentType] = useState("monthly");
   const [customAmount, setCustomAmount] = useState("");
 
-  // Di dalam komponen Dashboard, dekat useState lainnya
-  const [walletBalance, setWalletBalance] = useState(150000000); // Contoh saldo awal: 150 Juta IDRX
+  // Contract data state
+  const [borrowTokens, setBorrowTokens] = useState<string[]>([]);
+  const [userLoans, setUserLoans] = useState<Array<Loan & { collateralTokenAddress?: string }>>([]);
+  const [contractPaused, setContractPaused] = useState(false);
+  const [availableSupply, setAvailableSupply] = useState<string>('0');
+  const [totalSupply, setTotalSupply] = useState<string>('0');
+  const [utilizationBPS, setUtilizationBPS] = useState<string>('0');
+  const [interestRateBPS, setInterestRateBPS] = useState<string>('0');
 
+  // Define loan data type for UI
+  interface LoanData {
+    id: string;
+    date: string;
+    collateral: string;
+    tenor: string;
+    amount: string;
+    size: string;
+    status: "active" | "inactive";
+    monthlyPayment: string;
+    interestRate: string;
+    dueDate: string;
+    contractLoan?: Loan;
+    collateralToken?: string;
+  }
+
+  // Mock data for demo - replace with real contract data
+  const [walletBalance, setWalletBalance] = useState(150000000); // Example balance: 150 Million IDRX
+
+  // Load token-specific data
+  const loadTokenData = useCallback(async (token: `0x${string}`) => {
+    if (lastLoadedTokenRef.current === token || isLoadingRef.current) return;
+
+    lastLoadedTokenRef.current = token;
+    isLoadingRef.current = true;
+
+    try {
+      const currentDuration = BigInt(30) * 24n * 60n * 60n; // 30 days in seconds
+      const [supply, total, utilization, interestRate] = await Promise.all([
+        getAvailableSupply(token),
+        getTotalSupply(token),
+        getUtilizationBPS(token),
+        getCurrentInterestRateBPS(token, currentDuration),
+      ]);
+
+      setAvailableSupply(formatEther(supply as bigint));
+      setTotalSupply(formatEther(total as bigint));
+      setUtilizationBPS(((utilization as bigint) / 100n).toString());
+      setInterestRateBPS(((interestRate as bigint) / 100n).toString());
+    } catch (err) {
+      console.error('Error loading token data:', err);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [getAvailableSupply, getTotalSupply, getUtilizationBPS, getCurrentInterestRateBPS]);
+
+  // Load initial contract data
+  const loadContractData = useCallback(async () => {
+    if (isLoadingRef.current || !isConnected || !address) return;
+    isLoadingRef.current = true;
+
+    try {
+      // Load borrow tokens
+      const tokens = await getBorrowTokens() as string[];
+      setBorrowTokens(tokens);
+
+      // Load paused state
+      const paused = await isPaused() as boolean;
+      setContractPaused(paused);
+
+      // Load user loans for all supported collateral tokens
+      const loansWithCollateral: Array<Loan & { collateralTokenAddress: string }> = [];
+      for (const collateralToken of SUPPORTED_COLLATERAL_TOKENS) {
+        try {
+          const loan = await getUserLoan(
+            address as `0x${string}`,
+            collateralToken.CONTRACT_ADDRESS as `0x${string}`
+          ) as Loan;
+          if (loan.active) {
+            loansWithCollateral.push({
+              ...loan,
+              collateralTokenAddress: collateralToken.CONTRACT_ADDRESS
+            });
+          }
+        } catch (err) {
+          console.log(`No loan found for collateral ${collateralToken.TOKEN_SYMBOL}`);
+        }
+      }
+      setUserLoans(loansWithCollateral as Loan[]);
+
+      // Load token data for first borrow token
+      if (tokens.length > 0) {
+        await loadTokenData(tokens[0] as `0x${string}`);
+      }
+
+    } catch (err) {
+      console.error('Error loading contract data:', err);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [address, isConnected, getBorrowTokens, isPaused, getUserLoan, loadTokenData]);
+
+  // Helper functions for token handling
+  const getBorrowTokenSymbol = (tokenAddress: string): string => {
+    const token = SUPPORTED_BORROW_TOKENS.find(
+      t => t.CONTRACT_ADDRESS.toLowerCase() === tokenAddress.toLowerCase()
+    );
+    return token?.TOKEN_SYMBOL || 'Unknown';
+  };
+
+  const formatBorrowTokenAmount = (amount: bigint, tokenAddress: string): string => {
+    const token = SUPPORTED_BORROW_TOKENS.find(
+      t => t.CONTRACT_ADDRESS.toLowerCase() === tokenAddress.toLowerCase()
+    );
+    if (!token) return formatEther(amount);
+
+    const divisor = BigInt(10 ** token.DECIMALS);
+    const quotient = amount / divisor;
+    const remainder = amount % divisor;
+    const decimal = Number(remainder) / Number(divisor);
+    return (Number(quotient) + decimal).toFixed(Math.min(token.DECIMALS, 6));
+  };
+
+  const getCollateralTokenSymbol = (tokenAddress: string): string => {
+    const token = SUPPORTED_COLLATERAL_TOKENS.find(
+      t => t.CONTRACT_ADDRESS.toLowerCase() === tokenAddress.toLowerCase()
+    );
+    return token?.TOKEN_SYMBOL || 'Unknown';
+  };
+
+  // Convert contract loans to UI format
+  const convertContractLoansToUI = (contractLoans: Array<Loan & { collateralTokenAddress?: string }>): LoanData[] => {
+    return contractLoans.map((loan, index) => {
+      const borrowTokenSymbol = getBorrowTokenSymbol(loan.borrowToken);
+      const collateralTokenSymbol = loan.collateralTokenAddress
+        ? getCollateralTokenSymbol(loan.collateralTokenAddress)
+        : 'Unknown';
+
+      const principalAmount = formatBorrowTokenAmount(loan.principal, loan.borrowToken);
+      const remainingAmount = formatBorrowTokenAmount(
+        loan.principal + loan.interestAccrued,
+        loan.borrowToken
+      );
+
+      // Calculate monthly payment (simplified - you might want more complex calculation)
+      const monthsRemaining = Math.max(1, Math.ceil((loan.dueDate - Date.now() / 1000) / (30 * 24 * 60 * 60)));
+      const monthlyPayment = (parseFloat(remainingAmount) / monthsRemaining).toFixed(2);
+
+      return {
+        id: `Loan #${index + 1}`,
+        date: new Date(loan.startTime * 1000).toLocaleDateString('id-ID'),
+        collateral: `${collateralTokenSymbol} Collateral`,
+        tenor: `${Math.ceil((loan.dueDate - loan.startTime) / (30 * 24 * 60 * 60))} Bulan`,
+        amount: principalAmount,
+        size: remainingAmount,
+        status: loan.active ? "active" as const : "inactive" as const,
+        monthlyPayment: monthlyPayment,
+        interestRate: "Variable", // You'd calculate this from interest accrued
+        dueDate: new Date(loan.dueDate * 1000).toLocaleDateString('id-ID'),
+        contractLoan: loan,
+        collateralToken: loan.collateralTokenAddress // This is now the actual collateral token address
+      };
+    });
+  };
+
+  // Load data when wallet connects
+  useEffect(() => {
+    if (isConnected && !isLoadingRef.current) {
+      loadContractData();
+    }
+  }, [isConnected, loadContractData]);
+
+  // UI loading timer
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  const activeLoans = [
+  // Convert real loans or use mock data
+  const mockLoans: LoanData[] = [
+    // Mock data for demo
     {
       id: "Pinjaman Modal Kerja #001",
       date: "14 Nov 2024",
@@ -64,7 +262,7 @@ const Dashboard = () => {
       tenor: "12 Bulan",
       amount: "50.000.000",
       size: "45.000.000",
-      status: "active",
+      status: "active" as const,
       monthlyPayment: "4.500.000",
       interestRate: "1.5%",
       dueDate: "14 Desember 2024",
@@ -76,7 +274,7 @@ const Dashboard = () => {
       tenor: "24 Bulan",
       amount: "30.000.000",
       size: "18.000.000",
-      status: "active",
+      status: "active" as const,
       monthlyPayment: "2.187.500",
       interestRate: "9.0%",
       dueDate: "28 November 2024",
@@ -88,7 +286,7 @@ const Dashboard = () => {
       tenor: "18 Bulan",
       amount: "75.000.000",
       size: "70.000.000",
-      status: "active",
+      status: "active" as const,
       monthlyPayment: "6.875.000",
       interestRate: "8.75%",
       dueDate: "15 Oktober 2024",
@@ -100,34 +298,31 @@ const Dashboard = () => {
       tenor: "6 Bulan",
       amount: "15.000.000",
       size: "15.000.000",
-      status: "inactive",
+      status: "inactive" as const,
       monthlyPayment: "N/A",
       interestRate: "10.0%",
       dueDate: "01 Februari 2025",
     },
   ];
 
+  const activeLoans: LoanData[] = isConnected && userLoans.length > 0
+    ? convertContractLoansToUI(userLoans)
+    : mockLoans;
+
   const portfolioItems = [
     {
-      name: "Bitcoin",
-      symbol: "BTC",
+      name: "Wrapped Bitcoin",
+      symbol: "wBTC",
       amount: "0,25",
       valueIDR: "Rp 100.000.000",
       color: "bg-orange-500",
     },
     {
-      name: "Ethereum",
-      symbol: "ETH",
+      name: "Wrapped Ethereum",
+      symbol: "wETH",
       amount: "0,8",
       valueIDR: "Rp 20.000.000",
       color: "bg-gray-500",
-    },
-    {
-      name: "Solana",
-      symbol: "SOL",
-      amount: "10,5",
-      valueIDR: "Rp 10.000.000",
-      color: "bg-purple-500",
     },
   ];
 
@@ -154,7 +349,7 @@ const Dashboard = () => {
 
   const healthFactorColor = getHealthFactorHslColor(healthFactor);
 
-  const handlePaymentClick = (e: React.MouseEvent, loan: any) => {
+  const handlePaymentClick = (e: React.MouseEvent, loan: LoanData) => {
     e.stopPropagation();
     setSelectedLoan(loan);
     setRepaymentType("monthly");
@@ -162,7 +357,7 @@ const Dashboard = () => {
     setIsPaymentDialogOpen(true);
   };
 
-  const handleDetailClick = (e: React.MouseEvent, loan: any) => {
+  const handleDetailClick = (e: React.MouseEvent, loan: LoanData) => {
     e.stopPropagation();
     setSelectedLoan(loan);
     setIsDetailDialogOpen(true);
@@ -179,7 +374,21 @@ const Dashboard = () => {
     // Ini memastikan semua kalkulasi pembayaran menggunakan angka yang benar.
     const parseCurrency = (value: string) =>
       parseFloat(value.replace(/\./g, ""));
-    if (repaymentType === "full") return parseCurrency(selectedLoan.size);
+
+    if (repaymentType === "full") {
+      if (selectedLoan.contractLoan) {
+        // For contract loans, return principal + interest accrued
+        const borrowToken = SUPPORTED_BORROW_TOKENS.find(
+          t => t.CONTRACT_ADDRESS.toLowerCase() === selectedLoan.contractLoan!.borrowToken.toLowerCase()
+        );
+        if (!borrowToken) return 0;
+
+        const totalOwed = selectedLoan.contractLoan.principal + selectedLoan.contractLoan.interestAccrued;
+        return Number(totalOwed) / (10 ** borrowToken.DECIMALS);
+      }
+      return parseCurrency(selectedLoan.size);
+    }
+
     if (repaymentType === "monthly")
       return parseCurrency(selectedLoan.monthlyPayment);
     return parseFloat(customAmount) || 0;
@@ -187,61 +396,149 @@ const Dashboard = () => {
 
   const paymentAmount = getRepaymentAmount();
 
-  // Ganti fungsi lama dengan yang ini
-  const handlePaymentSubmit = () => {
-    // Pastikan ada pinjaman yang dipilih
+  // Enhanced payment submission with actual smart contract interaction
+  const handlePaymentSubmit = async () => {
     if (!selectedLoan) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Tidak ada pinjaman yang dipilih untuk dibayar.",
       });
-      return; // Hentikan fungsi jika tidak ada pinjaman terpilih
+      return;
     }
 
-    // 1. Ambil jumlah yang harus dibayar
     const paymentAmount = getRepaymentAmount();
+    console.log('Debug selectedLoan:', {
+      selectedLoan,
+      contractLoan: selectedLoan.contractLoan,
+      collateralToken: selectedLoan.collateralToken,
+      collateralTokenType: typeof selectedLoan.collateralToken
+    });
 
-    // 2. Bandingkan saldo dompet dengan jumlah pembayaran
-    const isSuccess = walletBalance >= paymentAmount;
+    // For contract loans, use real repayment
+    if (selectedLoan.contractLoan && selectedLoan.collateralToken && isConnected) {
+      try {
+        // Parse amount based on borrow token decimals
+        const borrowToken = selectedLoan.contractLoan.borrowToken;
+        const token = SUPPORTED_BORROW_TOKENS.find(
+          t => t.CONTRACT_ADDRESS.toLowerCase() === borrowToken.toLowerCase()
+        );
 
-    if (isSuccess) {
-      // --- Logika jika BERHASIL (saldo cukup) ---
+        if (!token) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Token tidak didukung untuk pembayaran.",
+          });
+          return;
+        }
 
-      // Kurangi saldo dompet (opsional, tapi membuat simulasi lebih baik)
-      setWalletBalance(walletBalance - paymentAmount);
+        // Get the collateral token address - must be a string
+        const collateralTokenAddress = selectedLoan.collateralToken;
 
-      toast({
-        title: "Pembayaran Berhasil",
-        description: (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <span>
-              Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} IDRX berhasil.
-            </span>
-          </div>
-        ),
-        className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-      });
+        console.log('Debug collateral token:', {
+          collateralTokenAddress,
+          type: typeof collateralTokenAddress,
+          isString: typeof collateralTokenAddress === 'string'
+        });
 
+        if (!collateralTokenAddress || typeof collateralTokenAddress !== 'string') {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Collateral token address tidak valid atau bukan string.",
+          });
+          return;
+        }
+
+        // Validate that collateralToken is a valid collateral token address
+        const collateralToken = SUPPORTED_COLLATERAL_TOKENS.find(
+          t => t.CONTRACT_ADDRESS.toLowerCase() === collateralTokenAddress.toLowerCase()
+        );
+
+        if (!collateralToken) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Collateral token tidak didukung.",
+          });
+          return;
+        }
+
+        const repayAmountBigInt = BigInt(Math.floor(paymentAmount * 10 ** token.DECIMALS));
+
+        console.log('Repaying loan:', {
+          collateralTokenAddress: collateralTokenAddress,
+          amount: repayAmountBigInt,
+          borrowToken: borrowToken,
+          tokenSymbol: token.TOKEN_SYMBOL
+        });
+
+        await repay(
+          collateralTokenAddress as `0x${string}`,
+          repayAmountBigInt
+        );
+
+        // Refresh data after successful transaction
+        await loadContractData();
+
+        toast({
+          title: "Pembayaran Berhasil",
+          description: (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span>
+                Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} {token.TOKEN_SYMBOL} berhasil.
+              </span>
+            </div>
+          ),
+          className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+        });
+
+      } catch (err) {
+        console.error('Repayment failed:', err);
+        toast({
+          variant: "destructive",
+          title: "Pembayaran Gagal",
+          description: "Transaksi pembayaran gagal. Silakan coba lagi.",
+        });
+      }
     } else {
-      // --- Logika jika GAGAL (saldo tidak cukup) ---
-      toast({
-        variant: "destructive",
-        title: "Pembayaran Gagal",
-        description: (
-          <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5" />
-            <span>
-              Saldo dompet tidak mencukupi untuk membayar {paymentAmount.toLocaleString('id-ID')} IDRX.
-            </span>
-          </div>
-        ),
-        className: "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
-      });
+      // Mock payment simulation for demo loans
+      const isSuccess = walletBalance >= paymentAmount;
+
+      if (isSuccess) {
+        setWalletBalance(walletBalance - paymentAmount);
+
+        toast({
+          title: "Pembayaran Berhasil",
+          description: (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span>
+                Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} IDRX berhasil.
+              </span>
+            </div>
+          ),
+          className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+        });
+
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Pembayaran Gagal",
+          description: (
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              <span>
+                Saldo dompet tidak mencukupi untuk membayar {paymentAmount.toLocaleString('id-ID')} IDRX.
+              </span>
+            </div>
+          ),
+        });
+      }
     }
 
-    // Tutup modal setelah notifikasi muncul
     setIsPaymentDialogOpen(false);
   };
 
@@ -249,14 +546,68 @@ const Dashboard = () => {
     <>
       <div className="bg-background text-foreground min-h-screen">
         <Navbar />
+
+        {/* Wallet Connection Banner */}
+        {!isConnected && (
+          <div className="bg-primary/10 border-b border-primary/20">
+            <div className="container mx-auto px-20 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium text-primary">Connect your wallet to access lending features</p>
+                    <p className="text-sm text-muted-foreground">Connect your wallet to view your loans and make payments</p>
+                  </div>
+                </div>
+                <Button onClick={connect} className="bg-primary hover:bg-primary/90">
+                  Connect Wallet
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <main className="container mx-auto px-20 py-8">
           <div className="max-w-7xl mx-auto">
             {loading ? (
               <Skeleton className="h-10 w-1/2 mb-8" />
             ) : (
-              <h1 className="text-4xl font-bold text-foreground mb-8">
-                Welcome back <span className="text-primary">{userName}</span>
-              </h1>
+              <div className="flex items-center justify-between mb-8">
+                <h1 className="text-4xl font-bold text-foreground">
+                  Welcome back <span className="text-primary">{userName}</span>
+                </h1>
+                {isConnected && (
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Wallet Balance</p>
+                      <p className="font-bold">{balance} ETH</p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (!isLoadingRef.current) {
+                          lastLoadedTokenRef.current = '';
+                          loadContractData();
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      disabled={contractLoading || isLoadingRef.current}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${contractLoading || isLoadingRef.current ? 'animate-spin' : ''}`} />
+                      Refresh Data
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <Card className="border-red-200 bg-red-50 mb-6">
+                <CardHeader>
+                  <CardTitle className="text-red-800">Contract Error</CardTitle>
+                  <p className="text-red-600">{error}</p>
+                </CardHeader>
+              </Card>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -270,15 +621,18 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Wallet className="h-4 w-4 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          Total Jaminan Aktif
+                          {isConnected ? "Total Available Supply" : "Total Jaminan Aktif"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          Rp {totalCollateralValue.toLocaleString("id-ID")}
+                          {isConnected
+                            ? `${parseFloat(availableSupply).toFixed(4)} ETH`
+                            : `Rp ${totalCollateralValue.toLocaleString("id-ID")}`
+                          }
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          +5.2% dari bulan lalu
+                          {isConnected ? "Available for borrowing" : "+5.2% dari bulan lalu"}
                         </p>
                       </CardContent>
                     </Card>
@@ -286,15 +640,18 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Banknote className="h-5 w-5 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          Sisa Pinjaman Aktif
+                          {isConnected ? "Total Supply" : "Sisa Pinjaman Aktif"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          Rp {totalOutstandingLoans.toLocaleString("id-ID")}
+                          {isConnected
+                            ? `${parseFloat(totalSupply).toFixed(4)} ETH`
+                            : `Rp ${totalOutstandingLoans.toLocaleString("id-ID")}`
+                          }
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          dari semua pinjaman
+                          {isConnected ? "Total liquidity in protocol" : "dari semua pinjaman"}
                         </p>
                       </CardContent>
                     </Card>
@@ -302,13 +659,21 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <HandCoins className="h-5 w-5 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          Tersedia untuk Pinjam
+                          {isConnected ? "Utilization Rate" : "Tersedia untuk Pinjam"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold">Rp 75.000.000</p>
+                        <p className="text-2xl font-bold">
+                          {isConnected
+                            ? `${utilizationBPS}%`
+                            : "Rp 75.000.000"
+                          }
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Berdasarkan jaminan saat ini
+                          {isConnected
+                            ? `Interest Rate: ${interestRateBPS}%`
+                            : "Berdasarkan jaminan saat ini"
+                          }
                         </p>
                       </CardContent>
                     </Card>
@@ -318,11 +683,25 @@ const Dashboard = () => {
                 {/* Active Loans Section */}
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">Riwayat Pinjaman</h2>
+                    <div className="flex items-center gap-4">
+                      <h2 className="text-2xl font-bold">
+                        {isConnected ? "Your Loans" : "Riwayat Pinjaman"}
+                      </h2>
+                      {isConnected && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant={contractPaused ? "destructive" : "default"}>
+                            {contractPaused ? "Contract Paused" : "Contract Active"}
+                          </Badge>
+                          {(contractLoading || isLoadingRef.current) && (
+                            <Badge variant="secondary">Loading...</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <Link to="/apply">
                       <Button variant="outline" size="sm">
                         <PlusCircle className="w-4 h-4 mr-2" />
-                        Tambah Pinjaman
+                        {isConnected ? "New Loan" : "Tambah Pinjaman"}
                       </Button>
                     </Link>
                   </div>
@@ -331,23 +710,58 @@ const Dashboard = () => {
                       <SkeletonLoader type="loan_card" />
                       <SkeletonLoader type="loan_card" />
                     </div>
-                  ) : (
+                  ) : activeLoans.length > 0 ? (
                     <div className="space-y-5">
+                      {isConnected && userLoans.length === 0 && (
+                        <Card className="border-dashed border-2 border-muted-foreground/25">
+                          <CardContent className="flex flex-col items-center justify-center py-8">
+                            <Banknote className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="font-semibold text-lg mb-2">No Active Loans</h3>
+                            <p className="text-muted-foreground text-center mb-4">
+                              You don't have any active loans yet. Start by applying for a loan with your collateral.
+                            </p>
+                            <Link to="/apply">
+                              <Button>
+                                <PlusCircle className="w-4 h-4 mr-2" />
+                                Apply for Loan
+                              </Button>
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      )}
                       {activeLoans.map((loan) => (
                         <Card
                           key={loan.id}
-                          className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100`}
+                          className={`group transition-all duration-300 rounded-lg overflow-hidden cursor-pointer bg-white hover:bg-gray-100 ${loan.contractLoan ? 'border-primary/30 bg-primary/5' : ''
+                            }`}
                         >
                           <CardContent className="p-5 flex mb-3 flex-col md:flex-row justify-between items-center md:items-start space-y-4 md:space-y-0">
                             <div className="flex-1 flex flex-col min-w-0">
                               <div className="mb-4 space-y-1">
-                                <p className="font-bold text-lg">{loan.id}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-lg">{loan.id}</p>
+                                  {loan.contractLoan && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Smart Contract
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                   Dibuat: {loan.date}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   Tenor: {loan.tenor}
                                 </p>
+                                {loan.contractLoan && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Borrow Token: {getBorrowTokenSymbol(loan.contractLoan.borrowToken)}
+                                  </p>
+                                )}
+                                {loan.contractLoan && loan.collateralToken && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Collateral: {getCollateralTokenSymbol(loan.collateralToken)}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex space-x-2">
                                 {loan.status === "active" && (
@@ -355,8 +769,9 @@ const Dashboard = () => {
                                     size="sm"
                                     className="bg-primary text-white hover:bg-primary/90"
                                     onClick={(e) => handlePaymentClick(e, loan)}
+                                    disabled={contractPaused && !!loan.contractLoan}
                                   >
-                                    Bayar Cicilan
+                                    {loan.contractLoan ? "Repay Loan" : "Bayar Cicilan"}
                                   </Button>
                                 )}
                                 <Button
@@ -371,10 +786,19 @@ const Dashboard = () => {
 
                             <div className="flex-shrink-0 text-right">
                               <p className="text-2xl font-bold">
-                                Rp {loan.amount}
+                                {loan.contractLoan
+                                  ? `${formatBorrowTokenAmount(loan.contractLoan.principal, loan.contractLoan.borrowToken)} ${getBorrowTokenSymbol(loan.contractLoan.borrowToken)}`
+                                  : `Rp ${loan.amount}`
+                                }
                               </p>
                               <p className="text-sm text-muted-foreground mb-2">
-                                Sisa: Rp {loan.size}
+                                Sisa: {loan.contractLoan
+                                  ? `${formatBorrowTokenAmount(
+                                    loan.contractLoan.principal + loan.contractLoan.interestAccrued,
+                                    loan.contractLoan.borrowToken
+                                  )} ${getBorrowTokenSymbol(loan.contractLoan.borrowToken)}`
+                                  : `Rp ${loan.size}`
+                                }
                               </p>
                               {loan.status === "active" ? (
                                 <Badge className="bg-primary/20 text-primary border-primary/30 hover:text-white">
@@ -390,6 +814,32 @@ const Dashboard = () => {
                         </Card>
                       ))}
                     </div>
+                  ) : (
+                    <Card className="border-dashed border-2 border-muted-foreground/25">
+                      <CardContent className="flex flex-col items-center justify-center py-8">
+                        <Banknote className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="font-semibold text-lg mb-2">No Loans Found</h3>
+                        <p className="text-muted-foreground text-center mb-4">
+                          {isConnected
+                            ? "You don't have any loans yet. Start by applying for a loan with your collateral."
+                            : "Connect your wallet to view your loan history."
+                          }
+                        </p>
+                        {isConnected ? (
+                          <Link to="/apply">
+                            <Button>
+                              <PlusCircle className="w-4 h-4 mr-2" />
+                              Apply for Loan
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Button onClick={connect}>
+                            <Wallet className="w-4 h-4 mr-2" />
+                            Connect Wallet
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </div>
@@ -402,13 +852,35 @@ const Dashboard = () => {
                   <Card className="bg-primary rounded-2xl p-5">
                     <CardHeader className="p-0 mb-4">
                       <CardTitle className="text-white">
-                        Portofolio Jaminan
+                        {isConnected ? "Wallet & Portfolio" : "Portofolio Jaminan"}
                       </CardTitle>
                       <p className="text-xs text-white text-opacity-80">
-                        Total aset yang Anda jaminkan
+                        {isConnected ? "Your connected wallet balance" : "Total aset yang Anda jaminkan"}
                       </p>
                     </CardHeader>
                     <CardContent className="p-0 space-y-4">
+                      {isConnected && (
+                        <div className="bg-white/10 rounded-lg p-3 mb-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
+                                <Wallet className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-white">Wallet Balance</p>
+                                <p className="text-sm text-white/80">
+                                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-white tabular-nums">
+                                {parseFloat(balance).toFixed(6)} ETH
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {portfolioItems.map((item, index) => (
                         <div
                           key={index}
@@ -445,7 +917,7 @@ const Dashboard = () => {
                             variant="secondary"
                             className="bg-white text-muted-foreground w-full text-md"
                           >
-                            Kelola Jaminan
+                            {isConnected ? "Manage Collateral" : "Kelola Jaminan"}
                           </Button>
                         </Link>
                       </div>
@@ -534,12 +1006,31 @@ const Dashboard = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Jumlah Pinjaman:</span>
-              <span className="font-medium">Rp {selectedLoan?.amount}</span>
+              <span className="font-medium">
+                {selectedLoan?.contractLoan
+                  ? `${formatBorrowTokenAmount(selectedLoan.contractLoan.principal, selectedLoan.contractLoan.borrowToken)} ${getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}`
+                  : `Rp ${selectedLoan?.amount}`
+                }
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Sisa Hutang:</span>
-              <span className="font-medium">Rp {selectedLoan?.size}</span>
+              <span className="font-medium">
+                {selectedLoan?.contractLoan
+                  ? `${formatBorrowTokenAmount(
+                    selectedLoan.contractLoan.principal + selectedLoan.contractLoan.interestAccrued,
+                    selectedLoan.contractLoan.borrowToken
+                  )} ${getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}`
+                  : `Rp ${selectedLoan?.size}`
+                }
+              </span>
             </div>
+            {selectedLoan?.contractLoan && selectedLoan.collateralToken && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Collateral Token:</span>
+                <span className="font-medium">{getCollateralTokenSymbol(selectedLoan.collateralToken)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tenor:</span>
               <span className="font-medium">{selectedLoan?.tenor}</span>
@@ -579,10 +1070,31 @@ const Dashboard = () => {
           <DialogHeader>
             <DialogTitle>Pembayaran Pinjaman: {selectedLoan?.id}</DialogTitle>
             <DialogDescription>
-              Pilih jenis pembayaran dan lakukan pembayaran menggunakan IDRX.
+              {selectedLoan?.contractLoan
+                ? "Make a repayment using your connected wallet and smart contract."
+                : "Pilih jenis pembayaran dan lakukan pembayaran menggunakan IDRX."
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {selectedLoan?.contractLoan && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-xs">Smart Contract Loan</Badge>
+                </div>
+                <div className="text-sm space-y-1">
+                  <p><span className="font-medium">Collateral Token:</span> {selectedLoan.collateralToken ? getCollateralTokenSymbol(selectedLoan.collateralToken) : 'Unknown'}</p>
+                  <p><span className="font-medium">Borrow Token:</span> {getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}</p>
+                  <p><span className="font-medium">Principal:</span> {formatBorrowTokenAmount(selectedLoan.contractLoan.principal, selectedLoan.contractLoan.borrowToken)}</p>
+                  <p><span className="font-medium">Interest Accrued:</span> {formatBorrowTokenAmount(selectedLoan.contractLoan.interestAccrued, selectedLoan.contractLoan.borrowToken)}</p>
+                  <p><span className="font-medium">Repaid:</span> {formatBorrowTokenAmount(selectedLoan.contractLoan.repaidAmount, selectedLoan.contractLoan.borrowToken)}</p>
+                  <p><span className="font-medium">Remaining:</span> {formatBorrowTokenAmount(
+                    selectedLoan.contractLoan.principal + selectedLoan.contractLoan.interestAccrued,
+                    selectedLoan.contractLoan.borrowToken
+                  )}</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Jenis Pembayaran</Label>
               <RadioGroup
@@ -593,23 +1105,24 @@ const Dashboard = () => {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="full" id="full" />
                   <Label htmlFor="full" className="cursor-pointer">
-                    Pelunasan (Rp{" "}
-                    {/* --- PERUBAHAN: Menggunakan `replace(/\./g, '')` --- */}
-                    {parseFloat(
-                      selectedLoan?.size.replace(/\./g, "")
-                    ).toLocaleString("id-ID")}
-                    )
+                    Pelunasan (
+                    {selectedLoan?.contractLoan
+                      ? `${formatBorrowTokenAmount(
+                        selectedLoan.contractLoan.principal + selectedLoan.contractLoan.interestAccrued,
+                        selectedLoan.contractLoan.borrowToken
+                      )} ${getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}`
+                      : `Rp ${parseFloat(selectedLoan?.size?.replace(/\./g, "") || "0").toLocaleString("id-ID")}`
+                    })
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="monthly" id="monthly" />
                   <Label htmlFor="monthly" className="cursor-pointer">
-                    Cicilan Bulanan (Rp{" "}
-                    {/* --- PERUBAHAN: Menggunakan `replace(/\./g, '')` --- */}
-                    {parseFloat(
-                      selectedLoan?.monthlyPayment.replace(/\./g, "")
-                    ).toLocaleString("id-ID")}
-                    )
+                    {selectedLoan?.contractLoan ? "Partial Payment" : "Cicilan Bulanan"} (
+                    {selectedLoan?.contractLoan
+                      ? `${formatBorrowTokenAmount(selectedLoan.contractLoan.principal / 12n, selectedLoan.contractLoan.borrowToken)} ${getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}`
+                      : `Rp ${parseFloat(selectedLoan?.monthlyPayment?.replace(/\./g, "") || "0").toLocaleString("id-ID")}`
+                    })
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -623,7 +1136,7 @@ const Dashboard = () => {
             {repaymentType === "custom" && (
               <div className="space-y-2">
                 <Label htmlFor="custom-amount">
-                  Jumlah Pembayaran (IDRX)
+                  Jumlah Pembayaran ({selectedLoan?.contractLoan ? getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken) : "IDRX"})
                 </Label>
                 <Input
                   id="custom-amount"
@@ -640,15 +1153,20 @@ const Dashboard = () => {
                   Jumlah Pembayaran:
                 </span>
                 <span className="font-medium">
-                  Rp {paymentAmount.toLocaleString("id-ID")}
+                  {selectedLoan?.contractLoan
+                    ? `${paymentAmount.toFixed(6)} ${getBorrowTokenSymbol(selectedLoan.contractLoan.borrowToken)}`
+                    : `Rp ${paymentAmount.toLocaleString("id-ID")}`
+                  }
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Dalam IDRX:</span>
-                <span className="font-medium">
-                  {paymentAmount.toLocaleString("id-ID")} IDRX
-                </span>
-              </div>
+              {!selectedLoan?.contractLoan && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Dalam IDRX:</span>
+                  <span className="font-medium">
+                    {paymentAmount.toLocaleString("id-ID")} IDRX
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -661,8 +1179,9 @@ const Dashboard = () => {
             <Button
               className="bg-primary text-white hover:bg-primary/90"
               onClick={handlePaymentSubmit}
+              disabled={contractLoading || (contractPaused && selectedLoan?.contractLoan !== undefined)}
             >
-              Konfirmasi Pembayaran
+              {contractLoading ? "Processing..." : "Konfirmasi Pembayaran"}
             </Button>
           </DialogFooter>
         </DialogContent>

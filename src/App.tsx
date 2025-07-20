@@ -2,13 +2,14 @@
 import { Toaster } from "@/components/ui/toaster"; //komponen untuk menampilkan notifikasi pada web
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WalletProvider } from "@/components/wallet/wallet-provider";
 
 // @tanstack/react-query untuk mengambil dan mengolah data dari server.
 // Tapi, karena ini cmn mockup, dia dipake karena best practice yang ada,
 // dia juga buat simulasi gimana nanti kalau kita sudah pasang backendnya.
 // Library ini juga bantu state management supaya lebih gampang kalau berurusan dengan
 // data, seperti loading, error, dan success/
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// NOTE: QueryClient is now handled by WalletProvider which includes wagmi integration
 
 // react-router-dom digunakan untuk routing di react
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -31,19 +32,17 @@ import AdminDashboard from "./pages/AdminDashboard";
 import TermsAndGuidelines from "./pages/TermsAndGuidelines";
 import PrivacyPolicy from "./pages/Privacy";
 import Partner from "./pages/Partner";
+import LendingDashboard from "./components/LendingDashboard";
 
-// queryClient digunakan untuk management data, walaupun ini hanya mockup.
-// Variabel ini berfungsi untuk menyimpan cache dari web,
-// sehingga pengambilan data yang sama akan lebih cepat.
+// NOTE: QueryClient is now handled by WalletProvider which includes wagmi integration
 // queryClient dibuat di file App.tsx supaya bisa menyimpan cache secara
 // global (menyimpan seluruh cache dari web)
-const queryClient = new QueryClient(); //inisiasi library
+// queryClient dibuat di file App.tsx supaya bisa menyimpan cache secara
+// global (menyimpan seluruh cache dari web)
 
 const App = () => (
-  // QueryClientProvider membungkus semuanya supaya seluruh halaman yang
-  // ada di web ini dapat menggunakan management data yang sama. Sehingga mereka
-  // bisa menggunakan queryClient yang ada dengan satu kali inisiasi di file ini
-  <QueryClientProvider client={queryClient}>
+  // WalletProvider wraps everything to provide wallet functionality
+  <WalletProvider>
     {/* tooltip provider digunakan disini untuk membungkus keseluruhan web
      supaya keseluruhan bagian di web ini dapat menggunakan fungsionalitas 
      dari tootip dengan satu kali inisiasi. tooltip digunakan untuk memberikan 
@@ -65,6 +64,7 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/lendingdashboard" element={<LendingDashboard />} />
           <Route path="/apply" element={<ApplyLoan />} />
           <Route path="/loans" element={<ManageLoans />} />
           <Route path="/manage-collateral" element={<ManageCollateral />} />
@@ -83,7 +83,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </WalletProvider>
 );
 
 export default App;

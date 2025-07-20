@@ -46,272 +46,391 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { getWalletTokenBalances, SUPPORTED_COLLATERAL_TOKENS } from "@/lib/contract-utils";
+
+
+
+// Types
+interface CollateralAsset {
+  type: string;
+  symbol: string;
+  name: string;
+  amount: number;
+  displayAmount: string;
+  valueIDR: number;
+  contractAddress: string;
+  decimals: number;
+}
+
+interface WalletBalances {
+  collateralBalances: Record<string, bigint>;
+  borrowBalances: Record<string, bigint>;
+}
+
+interface TransactionHistoryItem {
+  id: string;
+  date: string;
+  type: "Deposit" | "Withdrawal";
+  amount: string;
+  status: string;
+}
+
+
+
+// Constants
+const CACHE_DURATION = 30000; // 30 seconds
+const DEPOSIT_SIMULATION_DELAY = 2000;
+const WITHDRAWAL_SIMULATION_DELAY = 2000;
+const MIN_AMOUNT_THRESHOLD = 0.00000001;
 
 const ManageCollateral = () => {
-  //state untuk Popup konfirmasi Deposit & Tarik Jaminan
+  // State management
   const [isDepositConfirmOpen, setDepositConfirmOpen] = useState(false);
   const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
-
-//state untuk Deposit Jaminan
   const [depositAmount, setDepositAmount] = useState("");
   const [depositCollateralType, setDepositCollateralType] = useState("");
-  const [depositStatus, setDepositStatus] = useState("ready");
-
-  //state untuk Tarik Jaminan
+  const [depositStatus, setDepositStatus] = useState<"ready" | "pending" | "completed">("ready");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalCollateralType, setWithdrawalCollateralType] = useState("");
-  const [withdrawalStatus, setWithdrawalStatus] = useState("ready");
+  const [withdrawalStatus, setWithdrawalStatus] = useState<"ready" | "pending" | "completed">("ready");
   const [withdrawalError, setWithdrawalError] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
-  const depositAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-
-  const [availableCollateral, setAvailableCollateral] = useState([
-    {
-      type: "bitcoin",
-      symbol: "BTC",
-      name: "Bitcoin",
-      amount: 0.25,
-      valueIDR: 250000000,
-    },
-    {
-      type: "ethereum",
-      symbol: "ETH",
-      name: "Ethereum",
-      amount: 0.8,
-      valueIDR: 30000000,
-    },
-  ]);
-
-  const transactionHistory = [
-    {
-      id: "TX001",
-      date: "10 Jun 2024",
-      type: "Deposit",
-      amount: "0.15 BTC",
-      status: "Selesai",
-    },
-    {
-      id: "TX002",
-      date: "5 Jun 2024",
-      type: "Deposit",
-      amount: "0.8 ETH",
-      status: "Selesai",
-    },
-    {
-      id: "TX003",
-      date: "1 Jun 2024",
-      type: "Withdrawal",
-      amount: "0.05 BTC",
-      status: "Selesai",
-    },
-  ];
-
-  const [dummyWalletBalances, setDummyWalletBalances] = useState({
-    bitcoin: 2.5,
-    ethereum: 15.75,
-    usdt: 10000,
-    usdc: 5000,
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [availableCollateral, setAvailableCollateral] = useState<CollateralAsset[]>(() =>
+    SUPPORTED_COLLATERAL_TOKENS.map(token => ({
+      type: token.TOKEN_SYMBOL.toLowerCase(),
+      symbol: token.TOKEN_SYMBOL,
+      name: token.TOKEN_NAME,
+      amount: 0,
+      displayAmount: "0",
+      valueIDR: 0,
+      contractAddress: token.CONTRACT_ADDRESS,
+      decimals: token.DECIMALS
+    }))
+  );
+  const [walletBalances, setWalletBalances] = useState<WalletBalances>({
+    collateralBalances: {},
+    borrowBalances: {}
   });
 
-  const cryptoRates = {
-    bitcoin: 1000000000,
-    ethereum: 37500000,
-    usdt: 16000,
-    usdc: 16000,
-  };
+  const { toast } = useToast();
 
-  const formatNumber = (value: string) => {
+  // Mock transaction history - in real app this would come from API
+  const transactionHistory: TransactionHistoryItem[] = useMemo(() => [
+    { id: "TX001", date: "10 Jun 2024", type: "Deposit", amount: "0.15 wBTC", status: "Selesai" },
+    { id: "TX002", date: "5 Jun 2024", type: "Deposit", amount: "0.8 wETH", status: "Selesai" },
+    { id: "TX003", date: "1 Jun 2024", type: "Withdrawal", amount: "0.05 wBTC", status: "Selesai" },
+  ], []);
+
+  // Utility functions
+  const formatCurrency = useCallback((value: number, locale: string = 'id-ID', options?: Intl.NumberFormatOptions) => {
+    return value.toLocaleString(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 8,
+      ...options
+    });
+  }, []);
+
+  const formatInputNumber = useCallback((value: string): string => {
     if (!value) return "";
     const cleanValue = value.replace(/[^0-9,]/g, "").replace(",", ".");
     const parts = cleanValue.split(".");
     const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return parts.length > 1 ? `${integerPart},${parts[1]}` : integerPart;
-  };
+  }, []);
 
-  const parseNumber = (value: string) => {
+  const parseInputNumber = useCallback((value: string): number => {
     return parseFloat(value.replace(/\./g, "").replace(",", "."));
-  };
+  }, []);
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(depositAddress);
-    toast({
-      title: "Alamat Disalin",
-      description: "Alamat deposit telah disalin ke clipboard.",
+  // Memoized crypto rates
+  const cryptoRates = useMemo(() => {
+    const rates: Record<string, number> = {};
+    SUPPORTED_COLLATERAL_TOKENS.forEach(token => {
+      rates[token.TOKEN_SYMBOL.toLowerCase()] = token.TOKEN_SYMBOL === 'wETH' ? 37500000 : 1000000000;
     });
-  };
+    return rates;
+  }, []);
 
-  const handleDeposit = () => {
-    const amount = parseNumber(depositAmount);
-    if (
-      !depositCollateralType ||
-      !depositAmount ||
-      isNaN(amount) ||
-      amount <= 0
-    ) {
-      toast({
-        variant: "destructive",
-        title: "Deposit Gagal",
-        description: (
-          <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5" />
-            <span>
-              Silakan pilih jenis crypto dan masukkan jumlah yang valid.
-            </span>
-          </div>
-        ),
-        className:
-          "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
-      });
+  // Optimized balance calculation
+  const calculateAssetValue = useCallback((amount: number, tokenType: string): number => {
+    const rate = cryptoRates[tokenType] || 0;
+    return amount * rate;
+  }, [cryptoRates]);
+
+  const updateAssetDisplay = useCallback((asset: CollateralAsset, newAmount: number): CollateralAsset => {
+    return {
+      ...asset,
+      amount: newAmount,
+      displayAmount: formatCurrency(newAmount),
+      valueIDR: calculateAssetValue(newAmount, asset.type)
+    };
+  }, [formatCurrency, calculateAssetValue]);
+
+  const showToast = useCallback((type: 'success' | 'error', title: string, description: string) => {
+    const baseClasses = type === 'success'
+      ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+      : "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400";
+
+    toast({
+      variant: type === 'error' ? "destructive" : "default",
+      title,
+      description,
+      className: baseClasses,
+    });
+  }, [toast]);
+  // Memoized balance fetching function
+  const fetchBalances = useCallback(async () => {
+    const now = Date.now();
+
+    if (now - lastFetchTime < CACHE_DURATION) {
+      console.log('Skipping fetch due to cache');
       return;
     }
-    setDepositConfirmOpen(true);
-  };
 
-  const confirmDeposit = () => {
+    try {
+      console.log('Fetching balances from RPC...');
+      const balances = await getWalletTokenBalances();
+      setLastFetchTime(now);
+
+      // Process balance data efficiently
+      const collateralBalances: Record<string, bigint> = {};
+      const borrowBalances: Record<string, bigint> = {};
+
+      balances.collateralBalances.forEach(token => {
+        const rawBalance = BigInt(Math.floor(token.balance * Math.pow(10, token.decimals)));
+        collateralBalances[token.address] = rawBalance;
+      });
+
+      balances.borrowBalances.forEach(token => {
+        const rawBalance = BigInt(Math.floor(token.balance * Math.pow(10, token.decimals)));
+        borrowBalances[token.address] = rawBalance;
+      });
+
+      setWalletBalances({ collateralBalances, borrowBalances });
+
+      // Update collateral assets efficiently
+      setAvailableCollateral(prev =>
+        prev.map(token => {
+          const balanceData = balances.collateralBalances.find(b => b.address === token.contractAddress);
+          const amount = balanceData?.balance || 0;
+          return updateAssetDisplay(token, amount);
+        })
+      );
+
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+      showToast('error', "Error", "Failed to fetch wallet balances. Please try again.");
+    }
+  }, [lastFetchTime, showToast, updateAssetDisplay]);
+
+  // Force refresh function
+  const forceRefreshBalances = useCallback(async () => {
+    setLastFetchTime(0);
+    await fetchBalances();
+  }, [fetchBalances]);
+
+  useEffect(() => {
+    fetchBalances();
+  }, [fetchBalances]);
+
+
+
+
+
+  const getTokenBySymbol = useCallback((symbol: string) => {
+    return SUPPORTED_COLLATERAL_TOKENS.find(
+      token => token.TOKEN_SYMBOL.toLowerCase() === symbol.toLowerCase()
+    );
+  }, []);
+
+  const getAssetByType = useCallback((type: string) => {
+    return availableCollateral.find(asset => asset.type === type);
+  }, [availableCollateral]);
+
+  // Validation functions
+  const validateDepositInput = useCallback(() => {
+    const amount = parseInputNumber(depositAmount);
+    return {
+      isValid: depositCollateralType && depositAmount && !isNaN(amount) && amount > 0,
+      amount
+    };
+  }, [depositCollateralType, depositAmount, parseInputNumber]);
+
+  const validateWithdrawalInput = useCallback(() => {
+    const selectedAsset = getAssetByType(withdrawalCollateralType);
+    const amount = parseInputNumber(withdrawalAmount);
+
+    return {
+      isValid: selectedAsset && !isNaN(amount) && amount > 0 && amount <= selectedAsset.amount,
+      amount,
+      selectedAsset
+    };
+  }, [withdrawalCollateralType, withdrawalAmount, parseInputNumber, getAssetByType]);
+
+  // Optimized handlers
+  const handleDeposit = useCallback(() => {
+    const validation = validateDepositInput();
+
+    if (!validation.isValid) {
+      showToast('error', "Deposit Gagal", "Silakan pilih jenis crypto dan masukkan jumlah yang valid.");
+      return;
+    }
+
+    setDepositConfirmOpen(true);
+  }, [validateDepositInput, showToast]);
+
+  const handleWithdrawal = useCallback(() => {
+    const validation = validateWithdrawalInput();
+
+    if (!validation.isValid) {
+      showToast('error', "Penarikan Gagal", "Jumlah penarikan tidak valid atau melebihi jaminan yang tersedia.");
+      return;
+    }
+
+    setWithdrawConfirmOpen(true);
+  }, [validateWithdrawalInput, showToast]);
+
+  // Optimized confirmation handlers
+  const confirmDeposit = useCallback(() => {
+    const validation = validateDepositInput();
+    if (!validation.isValid) return;
+
     setLoading(true);
     setDepositStatus("pending");
-    setTimeout(() => {
-      setAvailableCollateral((prevCollateral) => {
-        const amount = parseNumber(depositAmount);
-        const existingAssetIndex = prevCollateral.findIndex(
-          (asset) => asset.type === depositCollateralType
-        );
-        const rate =
-          cryptoRates[depositCollateralType as keyof typeof cryptoRates] || 0;
 
-        if (existingAssetIndex > -1) {
-          const updatedCollateral = [...prevCollateral];
-          updatedCollateral[existingAssetIndex].amount += amount;
-          updatedCollateral[existingAssetIndex].valueIDR += amount * rate;
-          return updatedCollateral;
+    setTimeout(() => {
+      setAvailableCollateral(prev => {
+        const existingIndex = prev.findIndex(asset => asset.type === depositCollateralType);
+
+        if (existingIndex > -1) {
+          const updated = [...prev];
+          const newAmount = updated[existingIndex].amount + validation.amount;
+          updated[existingIndex] = updateAssetDisplay(updated[existingIndex], newAmount);
+          return updated;
         } else {
-          const newAsset = {
+          const token = getTokenBySymbol(depositCollateralType);
+          if (!token) return prev;
+
+          const newAsset: CollateralAsset = {
             type: depositCollateralType,
             symbol: depositCollateralType.toUpperCase(),
-            name:
-              depositCollateralType.charAt(0).toUpperCase() +
-              depositCollateralType.slice(1),
-            amount: amount,
-            valueIDR: amount * rate,
+            name: depositCollateralType.charAt(0).toUpperCase() + depositCollateralType.slice(1),
+            amount: validation.amount,
+            displayAmount: formatCurrency(validation.amount),
+            valueIDR: calculateAssetValue(validation.amount, depositCollateralType),
+            contractAddress: token.CONTRACT_ADDRESS,
+            decimals: token.DECIMALS
           };
-          return [...prevCollateral, newAsset];
+          return [...prev, newAsset];
         }
       });
 
       setDepositStatus("completed");
       setLoading(false);
+      showToast('success', "Deposit Berhasil", `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`);
 
-      toast({
-        title: "Deposit Berhasil",
-        description: `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`,
-        className:
-          "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-      });
-
+      // Reset form
       setDepositAmount("");
       setDepositCollateralType("");
       setDepositConfirmOpen(false);
-    }, 2000);
-  };
+    }, DEPOSIT_SIMULATION_DELAY);
+  }, [validateDepositInput, depositCollateralType, depositAmount, updateAssetDisplay, getTokenBySymbol, formatCurrency, calculateAssetValue, showToast]);
 
-  const handleWithdrawal = () => {
-    const selectedAsset = availableCollateral.find(
-      (asset) => asset.type === withdrawalCollateralType
-    );
-    const amountToWithdraw = parseNumber(withdrawalAmount);
+  const confirmWithdrawal = useCallback(() => {
+    const validation = validateWithdrawalInput();
+    if (!validation.isValid) return;
 
-    if (
-      !selectedAsset ||
-      isNaN(amountToWithdraw) ||
-      amountToWithdraw <= 0 ||
-      amountToWithdraw > selectedAsset.amount
-    ) {
-      toast({
-        variant: "destructive",
-        title: "Penarikan Gagal",
-        description:
-          "Jumlah penarikan tidak valid atau melebihi jaminan yang tersedia.",
-        className:
-          "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
-      });
-      return;
-    }
-    setWithdrawConfirmOpen(true);
-  };
-
-  const confirmWithdrawal = () => {
     setLoading(true);
     setWithdrawalStatus("pending");
+
     setTimeout(() => {
-      setAvailableCollateral((prevCollateral) => {
-        const amountToWithdraw = parseNumber(withdrawalAmount);
-        const rate =
-          cryptoRates[withdrawalCollateralType as keyof typeof cryptoRates] ||
-          0;
-        return prevCollateral
-          .map((asset) => {
+      setAvailableCollateral(prev =>
+        prev
+          .map(asset => {
             if (asset.type === withdrawalCollateralType) {
-              return {
-                ...asset,
-                amount: asset.amount - amountToWithdraw,
-                valueIDR: asset.valueIDR - amountToWithdraw * rate,
-              };
+              const newAmount = asset.amount - validation.amount;
+              return updateAssetDisplay(asset, newAmount);
             }
             return asset;
           })
-          .filter((asset) => asset.amount > 0.00000001);
-      });
+          .filter(asset => asset.amount > MIN_AMOUNT_THRESHOLD)
+      );
 
       setWithdrawalStatus("completed");
       setLoading(false);
-      toast({
-        title: "Penarikan Berhasil",
-        description: `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`,
-        className:
-          "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-      });
+      showToast('success', "Penarikan Berhasil", `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`);
 
+      // Reset form
       setWithdrawalAmount("");
       setWithdrawalCollateralType("");
       setWithdrawConfirmOpen(false);
-    }, 2000);
-  };
+    }, WITHDRAWAL_SIMULATION_DELAY);
+  }, [validateWithdrawalInput, withdrawalCollateralType, withdrawalAmount, updateAssetDisplay, showToast]);
 
-  const handleSetMaxWithdrawal = () => {
-    const selectedAsset = availableCollateral.find(
-      (asset) => asset.type === withdrawalCollateralType
-    );
+  // Max amount handlers
+  const handleSetMaxWithdrawal = useCallback(() => {
+    const selectedAsset = getAssetByType(withdrawalCollateralType);
     if (selectedAsset) {
-      setWithdrawalAmount(selectedAsset.amount.toString().replace(".", ","));
+      const formattedAmount = selectedAsset.amount.toString().replace(".", ",");
+      setWithdrawalAmount(formatInputNumber(formattedAmount));
       setWithdrawalError("");
     }
-  };
+  }, [withdrawalCollateralType, getAssetByType, formatInputNumber]);
 
-  const totalCollateralValue = availableCollateral.reduce(
-    (sum, asset) => sum + asset.valueIDR,
-    0
-  );
-
-  const handleSetMaxDeposit = () => {
+  const handleSetMaxDeposit = useCallback(() => {
     if (!depositCollateralType) {
-      toast({
-        variant: "destructive",
-        title: "Pilih Jenis Crypto",
-        description: "Silakan pilih jenis crypto terlebih dahulu.",
-      });
+      showToast('error', "Pilih Jenis Crypto", "Silakan pilih jenis crypto terlebih dahulu.");
       return;
     }
 
-    const maxAmount = dummyWalletBalances[depositCollateralType as keyof typeof dummyWalletBalances] || 0;
-    // Format angka dengan koma sebagai pemisah desimal jika diperlukan
+    const selectedToken = getTokenBySymbol(depositCollateralType);
+    if (!selectedToken) return;
+
+    const balance = walletBalances.collateralBalances[selectedToken.CONTRACT_ADDRESS] || 0n;
+    const maxAmount = Number(balance) / (10 ** selectedToken.DECIMALS);
     const formattedAmount = maxAmount.toString().replace(".", ",");
-    setDepositAmount(formatNumber(formattedAmount));
-  };
+    setDepositAmount(formatInputNumber(formattedAmount));
+  }, [depositCollateralType, getTokenBySymbol, walletBalances.collateralBalances, formatInputNumber, showToast]);
+
+  // Input change handlers
+  const handleDepositAmountChange = useCallback((value: string) => {
+    setDepositAmount(formatInputNumber(value));
+  }, [formatInputNumber]);
+
+  const handleWithdrawalAmountChange = useCallback((value: string) => {
+    const formattedValue = formatInputNumber(value);
+    const amount = parseInputNumber(formattedValue);
+    setWithdrawalAmount(formattedValue);
+
+    const selectedAsset = getAssetByType(withdrawalCollateralType);
+    if (selectedAsset && amount > selectedAsset.amount) {
+      setWithdrawalError("Jumlah melebihi jaminan yang tersedia.");
+    } else {
+      setWithdrawalError("");
+    }
+  }, [formatInputNumber, parseInputNumber, getAssetByType, withdrawalCollateralType]);
+
+  // Computed values
+  const totalCollateralValue = useMemo(() =>
+    availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0),
+    [availableCollateral]
+  );
+
+  const availableWithdrawalAssets = useMemo(() =>
+    availableCollateral.filter(asset => asset.amount > 0),
+    [availableCollateral]
+  );
+
+  const getWalletBalance = useCallback((tokenSymbol: string) => {
+    const token = getTokenBySymbol(tokenSymbol);
+    if (!token) return "0";
+
+    const balance = walletBalances.collateralBalances[token.CONTRACT_ADDRESS] || 0n;
+    return formatCurrency(Number(balance) / (10 ** token.DECIMALS));
+  }, [getTokenBySymbol, walletBalances.collateralBalances, formatCurrency]);
 
   return (
     <>
@@ -357,16 +476,11 @@ const ManageCollateral = () => {
                             <SelectValue placeholder="Pilih jenis crypto" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="bitcoin">
-                              Bitcoin (BTC)
-                            </SelectItem>
-                            <SelectItem value="ethereum">
-                              Ethereum (ETH)
-                            </SelectItem>
-                            <SelectItem value="usdt">Tether (USDT)</SelectItem>
-                            <SelectItem value="usdc">
-                              USD Coin (USDC)
-                            </SelectItem>
+                            {SUPPORTED_COLLATERAL_TOKENS.map(token => (
+                              <SelectItem key={token.TOKEN_SYMBOL} value={token.TOKEN_SYMBOL.toLowerCase()}>
+                                {token.TOKEN_NAME} ({token.TOKEN_SYMBOL})
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -377,9 +491,7 @@ const ManageCollateral = () => {
                             id="amount"
                             placeholder="0,001"
                             value={depositAmount}
-                            onChange={(e) =>
-                              setDepositAmount(formatNumber(e.target.value))
-                            }
+                            onChange={(e) => handleDepositAmountChange(e.target.value)}
                           />
                           <Button
                             type="button"
@@ -392,30 +504,13 @@ const ManageCollateral = () => {
                             Max
                           </Button>
                         </div>
+                        {depositCollateralType && (
+                          <p className="text-sm text-muted-foreground">
+                            Saldo: {getWalletBalance(depositCollateralType)} {depositCollateralType.toUpperCase()}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <QrCode className="w-10 h-10 text-gray-400" />
-                        </div>
-                        <div className="flex-1">
-                          <Label className="text-xs">Alamat Wallet</Label>
-                          <div className="flex items-center">
-                            <Input
-                              value={depositAddress}
-                              readOnly
-                              className="font-mono text-xs h-8"
-                            />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={copyAddress}
-                              className="ml-2 h-8"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+
                       <Button
                         className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
                         onClick={handleDeposit}
@@ -452,13 +547,10 @@ const ManageCollateral = () => {
                             <SelectValue placeholder="Pilih jaminan yang akan ditarik" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableCollateral.map((asset) => (
+                            {availableWithdrawalAssets.map((asset) => (
                               <SelectItem key={asset.type} value={asset.type}>
                                 {asset.name} - Tersedia:{" "}
-                                {asset.amount.toLocaleString("id-ID", {
-                                  maximumFractionDigits: 8,
-                                })}{" "}
-                                {asset.symbol.toUpperCase()}
+                                {asset.displayAmount} {asset.symbol.toUpperCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -471,25 +563,7 @@ const ManageCollateral = () => {
                             id="amount-withdraw"
                             placeholder="0,001"
                             value={withdrawalAmount}
-                            onChange={(e) => {
-                              const value = formatNumber(e.target.value);
-                              const amount = parseNumber(value);
-                              setWithdrawalAmount(value);
-                              const selectedAsset = availableCollateral.find(
-                                (asset) =>
-                                  asset.type === withdrawalCollateralType
-                              );
-                              if (
-                                selectedAsset &&
-                                amount > selectedAsset.amount
-                              ) {
-                                setWithdrawalError(
-                                  `Jumlah melebihi jaminan yang tersedia.`
-                                );
-                              } else {
-                                setWithdrawalError("");
-                              }
-                            }}
+                            onChange={handleWithdrawalAmountChange}
                             className={
                               withdrawalError
                                 ? "border-red-500 focus-visible:ring-red-500"
@@ -549,45 +623,46 @@ const ManageCollateral = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col flex-grow">
                   <div className="space-y-2">
-                    {availableCollateral.map((asset) => (
-                      <div
-                        key={asset.type}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              asset.symbol === "BTC"
+                    {availableCollateral.map((asset) => {
+                      // No need to recalculate here since we're now storing the displayAmount
+                      return (
+                        <div
+                          key={asset.type}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${asset.symbol === "wBTC"
                                 ? "bg-orange-500"
-                                : "bg-gray-500"
-                            }`}
-                          >
-                            <span className="text-white text-xs font-bold">
-                              {asset.symbol}
-                            </span>
+                                : asset.symbol === "wETH"
+                                  ? "bg-gray-500"
+                                  : "bg-blue-500"
+                                }`}
+                            >
+                              <span className="text-white text-xs font-bold">
+                                {asset.symbol}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{asset.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {asset.displayAmount} {asset.symbol}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{asset.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {asset.amount.toLocaleString("id-ID", {
-                                maximumFractionDigits: 8,
-                              })}{" "}
-                              {asset.symbol}
+                          <div className="text-right">
+                            <p className="font-medium">
+                              Rp {formatCurrency(asset.valueIDR)}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            Rp {asset.valueIDR.toLocaleString("id-ID")}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="border-t pt-4 mt-auto text-center">
                     <p className="text-sm font-medium">Total Nilai Jaminan</p>
                     <p className="text-2xl font-bold">
-                      Rp {totalCollateralValue.toLocaleString("id-ID")}
+                      Rp {formatCurrency(totalCollateralValue)}
                     </p>
                   </div>
                 </CardContent>

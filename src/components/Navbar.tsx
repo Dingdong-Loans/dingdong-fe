@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { NavLink, Link } from "react-router-dom";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/use-wallet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,38 +9,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Wallet, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConnectModal } from "@xellar/kit";
 
 const Navbar = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { address, isConnected, balance, disconnect } = useWallet();
+  const { open } = useConnectModal();
 
   const handleConnectWallet = () => {
-    const mockAddress = "0x1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t";
-    setWalletAddress(mockAddress);
-    setIsConnected(true);
-    toast({
-      title: "Wallet Terhubung",
-      description: `Alamat Anda: ${mockAddress.substring(
-        0,
-        6
-      )}...${mockAddress.substring(mockAddress.length - 4)}`,
-    });
-  };
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setWalletAddress(null);
-    toast({
-      title: "Koneksi Terputus",
-      description: "Wallet Anda telah diputuskan.",
-    });
+    open();
   };
 
   const getShortenedAddress = () => {
-    if (!walletAddress) return "";
-    return `${walletAddress.substring(0, 6)}...${walletAddress.substring(
-      walletAddress.length - 4
+    if (!address) return "";
+    return `${address.substring(0, 6)}...${address.substring(
+      address.length - 4
     )}`;
   };
 
@@ -102,8 +83,11 @@ const Navbar = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem className="font-medium text-sm">
+                  Balance: {parseFloat(balance).toFixed(4)} ETH
+                </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={handleDisconnect}
+                  onClick={disconnect}
                   className="text-red-600 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
