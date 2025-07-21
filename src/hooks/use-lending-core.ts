@@ -516,11 +516,11 @@ export const useLendingCore = () => {
 			)
 		);
 
-	const depositCollateral = (
+	const depositCollateral = async (
 		collateralToken: `0x${string}`,
 		amount: bigint
 	) => {
-		executeTransaction("Deposit Collateral", () =>
+		await executeTransaction("Deposit Collateral", () =>
 			contractUtils.writeContract(
 				CONTRACT_ADDRESSES.LOAN_CONTRACT,
 				LOAN_CONTRACT_ABI,

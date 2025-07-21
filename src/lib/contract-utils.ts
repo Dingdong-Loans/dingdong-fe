@@ -152,6 +152,7 @@ export const SUPPORTED_TOKENS = [
 		DECIMALS: 18,
 		COLLATERAL_TOKEN: false,
 		BORROW_TOKEN: true,
+		LTV: 0,
 	},
 	{
 		CONTRACT_ADDRESS:
@@ -161,6 +162,7 @@ export const SUPPORTED_TOKENS = [
 		DECIMALS: 2,
 		COLLATERAL_TOKEN: false,
 		BORROW_TOKEN: true,
+		LTV: 0,
 	},
 	{
 		CONTRACT_ADDRESS:
@@ -170,6 +172,7 @@ export const SUPPORTED_TOKENS = [
 		DECIMALS: 18,
 		COLLATERAL_TOKEN: true,
 		BORROW_TOKEN: false,
+		LTV: 0.7,
 	},
 	{
 		CONTRACT_ADDRESS:
@@ -179,6 +182,7 @@ export const SUPPORTED_TOKENS = [
 		DECIMALS: 8,
 		COLLATERAL_TOKEN: true,
 		BORROW_TOKEN: false,
+		LTV: 0.8,
 	},
 ];
 
@@ -190,14 +194,14 @@ export const CONTRACT_ADDRESSES = {
 		"0x6285324964E0Da94822bE2BcD0eDeB5126536B36" as `0x${string}`, // Replace with actual address
 } as const;
 
-// Function to fetch token balances for both borrow and collateral tokens
+// Function to fetch wallet token balances for all supported tokens
 export async function getWalletTokenBalances() {
 	const walletClient = getWalletClient();
 	const [account] = await walletClient.getAddresses();
 	try {
-		// Fetch balances for all supported collateral tokens
-		const collateralBalances = await Promise.all(
-			SUPPORTED_COLLATERAL_TOKENS.map(async (token) => {
+		// Fetch balances for all supported tokens (both collateral and borrow tokens)
+		const walletBalances = await Promise.all(
+			SUPPORTED_TOKENS.map(async (token) => {
 				const balance = await contractUtils.readContract(
 					token.CONTRACT_ADDRESS,
 					[
@@ -217,49 +221,19 @@ export async function getWalletTokenBalances() {
 					symbol: token.TOKEN_SYMBOL,
 					balance:
 						Number(
-							(BigInt(balance) * BigInt(1000000)) /
+							(BigInt(balance as string) * BigInt(1000000)) /
 								BigInt(10 ** token.DECIMALS)
 						) / 1000000,
 					decimals: token.DECIMALS,
 					address: token.CONTRACT_ADDRESS,
-				};
-			})
-		);
-
-		// Fetch balances for all supported borrow tokens
-		const borrowBalances = await Promise.all(
-			SUPPORTED_BORROW_TOKENS.map(async (token) => {
-				const balance = await contractUtils.readContract(
-					token.CONTRACT_ADDRESS,
-					[
-						{
-							name: "balanceOf",
-							type: "function",
-							inputs: [{ name: "account", type: "address" }],
-							outputs: [{ name: "", type: "uint256" }],
-							stateMutability: "view",
-						},
-					] as const,
-					"balanceOf",
-					[account]
-				);
-
-				return {
-					symbol: token.TOKEN_SYMBOL,
-					balance:
-						Number(
-							(BigInt(balance) * BigInt(1000000)) /
-								BigInt(10 ** token.DECIMALS)
-						) / 1000000,
-					decimals: token.DECIMALS,
-					address: token.CONTRACT_ADDRESS,
+					isCollateralToken: token.COLLATERAL_TOKEN,
+					isBorrowToken: token.BORROW_TOKEN,
 				};
 			})
 		);
 
 		return {
-			collateralBalances,
-			borrowBalances,
+			walletBalances,
 		};
 	} catch (error) {
 		console.error("Error fetching token balances:", error);

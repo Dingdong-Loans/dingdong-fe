@@ -45,6 +45,8 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Loader,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -68,8 +70,7 @@ interface CollateralAsset {
 }
 
 interface WalletBalances {
-  collateralBalances: Record<string, bigint>;
-  borrowBalances: Record<string, bigint>;
+  walletBalances: Record<string, bigint>;
 }
 
 interface TransactionHistoryItem {
@@ -91,10 +92,11 @@ const MIN_AMOUNT_THRESHOLD = 0.00000001;
 const ManageCollateral = () => {  // User wallet
   const { address } = useWallet();
   // Contract hooks
-  const { depositCollateral } = useLendingCore();
-  const { withdraw: withdrawCollateral } = useCollateralManager();
+  const { depositCollateral, withdrawCollateral } = useLendingCore();
+  const { getDepositedCollateral } = useCollateralManager();
 
   // State management
+  const [buttonIsLoading, setButtonIsLoading] = useState(false);
   const [isDepositConfirmOpen, setDepositConfirmOpen] = useState(false);
   const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
@@ -105,7 +107,9 @@ const ManageCollateral = () => {  // User wallet
   const [withdrawalStatus, setWithdrawalStatus] = useState<"ready" | "pending" | "completed">("ready");
   const [withdrawalError, setWithdrawalError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [lastFetchTime, setLastFetchTime] = useState(0); const [availableCollateral, setAvailableCollateral] = useState<CollateralAsset[]>(() =>
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [lastDepositedCollateralFetchTime, setLastDepositedCollateralFetchTime] = useState(0);
+  const [availableCollateral, setAvailableCollateral] = useState<CollateralAsset[]>(() =>
     SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(token => ({
       type: token.TOKEN_SYMBOL.toLowerCase(),
       symbol: token.TOKEN_SYMBOL,
@@ -118,18 +122,30 @@ const ManageCollateral = () => {  // User wallet
     }))
   );
   const [walletBalances, setWalletBalances] = useState<WalletBalances>({
-    collateralBalances: {},
-    borrowBalances: {}
+    walletBalances: {}
   });
+  const [depositedCollateral, setDepositedCollateral] = useState<CollateralAsset[]>(() =>
+    SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(token => ({
+      type: token.TOKEN_SYMBOL.toLowerCase(),
+      symbol: token.TOKEN_SYMBOL,
+      name: token.TOKEN_NAME,
+      amount: 0,
+      displayAmount: "0",
+      valueIDR: 0,
+      contractAddress: token.CONTRACT_ADDRESS,
+      decimals: token.DECIMALS
+    }))
+  );
+
 
   const { toast } = useToast();
 
   // Mock transaction history - in real app this would come from API
-  const transactionHistory: TransactionHistoryItem[] = useMemo(() => [
+  const transactionHistory: TransactionHistoryItem[] = [
     { id: "TX001", date: "10 Jun 2024", type: "Deposit", amount: "0.15 wBTC", status: "Selesai" },
     { id: "TX002", date: "5 Jun 2024", type: "Deposit", amount: "0.8 wETH", status: "Selesai" },
     { id: "TX003", date: "1 Jun 2024", type: "Withdrawal", amount: "0.05 wBTC", status: "Selesai" },
-  ], []);
+  ];
 
   // Utility functions
   const formatCurrency = useCallback((value: number, locale: string = 'id-ID', options?: Intl.NumberFormatOptions) => {
@@ -202,25 +218,19 @@ const ManageCollateral = () => {  // User wallet
       setLastFetchTime(now);
 
       // Process balance data efficiently
-      const collateralBalances: Record<string, bigint> = {};
-      const borrowBalances: Record<string, bigint> = {};
+      const walletBalancesData: Record<string, bigint> = {};
 
-      balances.collateralBalances.forEach(token => {
+      balances.walletBalances.forEach(token => {
         const rawBalance = BigInt(Math.floor(token.balance * Math.pow(10, token.decimals)));
-        collateralBalances[token.address] = rawBalance;
+        walletBalancesData[token.address] = rawBalance;
       });
 
-      balances.borrowBalances.forEach(token => {
-        const rawBalance = BigInt(Math.floor(token.balance * Math.pow(10, token.decimals)));
-        borrowBalances[token.address] = rawBalance;
-      });
-
-      setWalletBalances({ collateralBalances, borrowBalances });
+      setWalletBalances({ walletBalances: walletBalancesData });
 
       // Update collateral assets efficiently
       setAvailableCollateral(prev =>
         prev.map(token => {
-          const balanceData = balances.collateralBalances.find(b => b.address === token.contractAddress);
+          const balanceData = balances.walletBalances.find(b => b.address === token.contractAddress && b.isCollateralToken);
           const amount = balanceData?.balance || 0;
           return updateAssetDisplay(token, amount);
         })
@@ -238,9 +248,71 @@ const ManageCollateral = () => {  // User wallet
     await fetchBalances();
   }, [fetchBalances]);
 
+  // Fetch deposited collateral from contract
+  const fetchDepositedCollateral = useCallback(async () => {
+    if (!address) return;
+
+    const now = Date.now();
+    if (now - lastDepositedCollateralFetchTime < CACHE_DURATION) {
+      console.log('Skipping deposited collateral fetch due to cache');
+      return;
+    }
+
+    try {
+      console.log('Fetching deposited collateral from contract...');
+      setLastDepositedCollateralFetchTime(now);
+
+      // Fetch deposited amounts for all supported collateral tokens
+      const depositedAmounts = await Promise.all(
+        SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(async (token) => {
+          try {
+            const depositedAmount = await getDepositedCollateral(
+              address as `0x${string}`,
+              token.CONTRACT_ADDRESS as `0x${string}`
+            );
+
+            // Convert BigInt to number with correct decimals
+            const amount = Number(depositedAmount as bigint) / (10 ** token.DECIMALS);
+
+            return {
+              type: token.TOKEN_SYMBOL.toLowerCase(),
+              symbol: token.TOKEN_SYMBOL,
+              name: token.TOKEN_NAME,
+              amount,
+              displayAmount: formatCurrency(amount),
+              valueIDR: calculateAssetValue(amount, token.TOKEN_SYMBOL.toLowerCase()),
+              contractAddress: token.CONTRACT_ADDRESS,
+              decimals: token.DECIMALS
+            } as CollateralAsset;
+          } catch (error) {
+            console.error(`Error fetching deposited collateral for ${token.TOKEN_SYMBOL}:`, error);
+            return {
+              type: token.TOKEN_SYMBOL.toLowerCase(),
+              symbol: token.TOKEN_SYMBOL,
+              name: token.TOKEN_NAME,
+              amount: 0,
+              displayAmount: "0",
+              valueIDR: 0,
+              contractAddress: token.CONTRACT_ADDRESS,
+              decimals: token.DECIMALS
+            } as CollateralAsset;
+          }
+        })
+      );
+
+      setDepositedCollateral(depositedAmounts);
+    } catch (error) {
+      console.error('Error fetching deposited collateral:', error);
+      showToast('error', "Error", "Failed to fetch deposited collateral. Please try again.");
+    }
+  }, [address, lastDepositedCollateralFetchTime, getDepositedCollateral, formatCurrency, calculateAssetValue, showToast]);
+
   useEffect(() => {
     fetchBalances();
-  }, [fetchBalances]);
+    if (address) {
+      fetchDepositedCollateral();
+    }
+  }, [fetchBalances, fetchDepositedCollateral, address]);
   const getTokenBySymbol = useCallback((symbol: string) => {
     return SUPPORTED_TOKENS.find(
       token => token.TOKEN_SYMBOL.toLowerCase() === symbol.toLowerCase() && token.COLLATERAL_TOKEN
@@ -248,8 +320,8 @@ const ManageCollateral = () => {  // User wallet
   }, []);
 
   const getAssetByType = useCallback((type: string) => {
-    return availableCollateral.find(asset => asset.type === type);
-  }, [availableCollateral]);
+    return depositedCollateral.find(asset => asset.type === type);
+  }, [depositedCollateral]);
 
   // Validation functions
   const validateDepositInput = useCallback(() => {
@@ -271,7 +343,7 @@ const ManageCollateral = () => {  // User wallet
     };
   }, [withdrawalCollateralType, withdrawalAmount, parseInputNumber, getAssetByType]);
   // Optimized handlers
-  const handleDeposit = useCallback(() => {
+  const handleDeposit = () => {
     const validation = validateDepositInput();
 
     if (!validation.isValid) {
@@ -280,9 +352,9 @@ const ManageCollateral = () => {  // User wallet
     }
 
     setDepositConfirmOpen(true);
-  }, [validateDepositInput, showToast]);
+  };
 
-  const handleWithdrawal = useCallback(() => {
+  const handleWithdrawal = () => {
     const validation = validateWithdrawalInput();
 
     if (!validation.isValid) {
@@ -291,9 +363,10 @@ const ManageCollateral = () => {  // User wallet
     }
 
     setWithdrawConfirmOpen(true);
-  }, [validateWithdrawalInput, showToast]);
+  };
 
   const confirmDeposit = useCallback(async (): Promise<void> => {
+    setButtonIsLoading(true);
     const validation = validateDepositInput();
     if (!validation.isValid) return;
 
@@ -316,32 +389,8 @@ const ManageCollateral = () => {  // User wallet
         amountInWei
       );
 
-      // Update UI state after successful transaction
-      setAvailableCollateral(prev => {
-        const existingIndex = prev.findIndex(asset => asset.type === depositCollateralType);
-
-        if (existingIndex > -1) {
-          const updated = [...prev];
-          const newAmount = updated[existingIndex].amount + validation.amount;
-          updated[existingIndex] = updateAssetDisplay(updated[existingIndex], newAmount);
-          return updated;
-        } else {
-          const newAsset: CollateralAsset = {
-            type: depositCollateralType,
-            symbol: depositCollateralType.toUpperCase(),
-            name: depositCollateralType.charAt(0).toUpperCase() + depositCollateralType.slice(1),
-            amount: validation.amount,
-            displayAmount: formatCurrency(validation.amount),
-            valueIDR: calculateAssetValue(validation.amount, depositCollateralType),
-            contractAddress: token.CONTRACT_ADDRESS,
-            decimals: token.DECIMALS
-          };
-          return [...prev, newAsset];
-        }
-      });
-
       setDepositStatus("completed");
-      showToast('success', "Deposit Berhasil", `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`);
+      // showToast('success', "Deposit Berhasil", `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`);
 
       // Reset form
       setDepositAmount("");
@@ -350,14 +399,18 @@ const ManageCollateral = () => {  // User wallet
 
       // Force refresh balances to show updated values
       await forceRefreshBalances();
+      setLastDepositedCollateralFetchTime(0);
+      await fetchDepositedCollateral();
     } catch (error) {
       console.error("Deposit error:", error);
       showToast('error', "Deposit Gagal", error instanceof Error ? error.message : "Terjadi kesalahan saat deposit jaminan.");
     } finally {
       setLoading(false);
+      setButtonIsLoading(false);
     }
-  }, [validateDepositInput, depositCollateralType, depositAmount, updateAssetDisplay, getTokenBySymbol, formatCurrency, calculateAssetValue, showToast, forceRefreshBalances, depositCollateral]);
+  }, [validateDepositInput, depositCollateralType, depositAmount, getTokenBySymbol, showToast, forceRefreshBalances, fetchDepositedCollateral, depositCollateral]);
   const confirmWithdrawal = useCallback(async () => {
+    setButtonIsLoading(true);
     const validation = validateWithdrawalInput();
     if (!validation.isValid) return;
 
@@ -378,26 +431,12 @@ const ManageCollateral = () => {  // User wallet
       // Call the contract's withdraw function
       // The contract.withdraw function expects (user, token, amount)
       await withdrawCollateral(
-        address as `0x${string}`,
         asset.contractAddress as `0x${string}`,
         amountInWei
       );
 
-      // Update UI state after successful transaction
-      setAvailableCollateral(prev =>
-        prev
-          .map(asset => {
-            if (asset.type === withdrawalCollateralType) {
-              const newAmount = asset.amount - validation.amount;
-              return updateAssetDisplay(asset, newAmount);
-            }
-            return asset;
-          })
-          .filter(asset => asset.amount > MIN_AMOUNT_THRESHOLD)
-      );
-
       setWithdrawalStatus("completed");
-      showToast('success', "Penarikan Berhasil", `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`);
+      // showToast('success', "Penarikan Berhasil", `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`);
 
       // Reset form
       setWithdrawalAmount("");
@@ -406,25 +445,28 @@ const ManageCollateral = () => {  // User wallet
 
       // Force refresh balances to show updated values
       await forceRefreshBalances();
+      setLastDepositedCollateralFetchTime(0);
+      await fetchDepositedCollateral();
     } catch (error) {
       console.error("Withdrawal error:", error);
       showToast('error', "Penarikan Gagal", error instanceof Error ? error.message : "Terjadi kesalahan saat menarik jaminan.");
     } finally {
       setLoading(false);
+      setButtonIsLoading(false);
     }
-  }, [validateWithdrawalInput, withdrawalCollateralType, withdrawalAmount, address, updateAssetDisplay, getAssetByType, showToast, forceRefreshBalances, withdrawCollateral]);
+  }, [validateWithdrawalInput, withdrawalCollateralType, withdrawalAmount, address, getAssetByType, showToast, forceRefreshBalances, fetchDepositedCollateral, withdrawCollateral]);
 
   // Max amount handlers
-  const handleSetMaxWithdrawal = useCallback(() => {
+  const handleSetMaxWithdrawal = () => {
     const selectedAsset = getAssetByType(withdrawalCollateralType);
     if (selectedAsset) {
       const formattedAmount = selectedAsset.amount.toString().replace(".", ",");
       setWithdrawalAmount(formatInputNumber(formattedAmount));
       setWithdrawalError("");
     }
-  }, [withdrawalCollateralType, getAssetByType, formatInputNumber]);
+  };
 
-  const handleSetMaxDeposit = useCallback(() => {
+  const handleSetMaxDeposit = () => {
     if (!depositCollateralType) {
       showToast('error', "Pilih Jenis Crypto", "Silakan pilih jenis crypto terlebih dahulu.");
       return;
@@ -433,18 +475,18 @@ const ManageCollateral = () => {  // User wallet
     const selectedToken = getTokenBySymbol(depositCollateralType);
     if (!selectedToken) return;
 
-    const balance = walletBalances.collateralBalances[selectedToken.CONTRACT_ADDRESS] || 0n;
+    const balance = walletBalances.walletBalances[selectedToken.CONTRACT_ADDRESS] || 0n;
     const maxAmount = Number(balance) / (10 ** selectedToken.DECIMALS);
     const formattedAmount = maxAmount.toString().replace(".", ",");
     setDepositAmount(formatInputNumber(formattedAmount));
-  }, [depositCollateralType, getTokenBySymbol, walletBalances.collateralBalances, formatInputNumber, showToast]);
+  };
 
   // Input change handlers
-  const handleDepositAmountChange = useCallback((value: string) => {
+  const handleDepositAmountChange = (value: string) => {
     setDepositAmount(formatInputNumber(value));
-  }, [formatInputNumber]);
+  };
 
-  const handleWithdrawalAmountChange = useCallback((value: string) => {
+  const handleWithdrawalAmountChange = (value: string) => {
     const formattedValue = formatInputNumber(value);
     const amount = parseInputNumber(formattedValue);
     setWithdrawalAmount(formattedValue);
@@ -455,26 +497,26 @@ const ManageCollateral = () => {  // User wallet
     } else {
       setWithdrawalError("");
     }
-  }, [formatInputNumber, parseInputNumber, getAssetByType, withdrawalCollateralType]);
+  };
 
   // Computed values
   const totalCollateralValue = useMemo(() =>
-    availableCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0),
-    [availableCollateral]
+    depositedCollateral.reduce((sum, asset) => sum + asset.valueIDR, 0),
+    [depositedCollateral]
   );
 
   const availableWithdrawalAssets = useMemo(() =>
-    availableCollateral.filter(asset => asset.amount > 0),
-    [availableCollateral]
+    depositedCollateral.filter(asset => asset.amount > 0),
+    [depositedCollateral]
   );
 
-  const getWalletBalance = useCallback((tokenSymbol: string) => {
+  const getWalletBalance = (tokenSymbol: string) => {
     const token = getTokenBySymbol(tokenSymbol);
     if (!token) return "0";
 
-    const balance = walletBalances.collateralBalances[token.CONTRACT_ADDRESS] || 0n;
+    const balance = walletBalances.walletBalances[token.CONTRACT_ADDRESS] || 0n;
     return formatCurrency(Number(balance) / (10 ** token.DECIMALS));
-  }, [getTokenBySymbol, walletBalances.collateralBalances, formatCurrency]);
+  };
 
   return (
     <>
@@ -606,7 +648,7 @@ const ManageCollateral = () => {  // User wallet
                             id="amount-withdraw"
                             placeholder="0,001"
                             value={withdrawalAmount}
-                            onChange={handleWithdrawalAmountChange}
+                            onChange={(e) => handleWithdrawalAmountChange(e.target.value)}
                             className={
                               withdrawalError
                                 ? "border-red-500 focus-visible:ring-red-500"
@@ -666,8 +708,10 @@ const ManageCollateral = () => {  // User wallet
                 </CardHeader>
                 <CardContent className="flex flex-col flex-grow">
                   <div className="space-y-2">
-                    {availableCollateral.map((asset) => {
-                      // No need to recalculate here since we're now storing the displayAmount
+                    {depositedCollateral.map((asset) => {
+                      // Only show assets with deposited amounts greater than 0
+                      if (asset.amount <= 0) return null;
+
                       return (
                         <div
                           key={asset.type}
@@ -701,6 +745,13 @@ const ManageCollateral = () => {  // User wallet
                         </div>
                       );
                     })}
+                    {depositedCollateral.every(asset => asset.amount <= 0) && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Belum ada jaminan yang didepositkan</p>
+                        <p className="text-sm">Deposit crypto Anda untuk mulai meminjam</p>
+                      </div>
+                    )}
                   </div>
                   <div className="border-t pt-4 mt-auto text-center">
                     <p className="text-sm font-medium">Total Nilai Jaminan</p>
@@ -785,8 +836,9 @@ const ManageCollateral = () => {  // User wallet
             <Button
               className="bg-primary text-white hover:bg-primary/90"
               onClick={confirmDeposit}
+              disabled={buttonIsLoading}
             >
-              Ya, Lanjutkan Deposit
+              {buttonIsLoading ? <><Loader2 />Deposit sedang diproses</> : "Ya, Lanjutkan Deposit"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -816,8 +868,9 @@ const ManageCollateral = () => {  // User wallet
             <Button
               className="bg-primary text-white hover:bg-primary/90"
               onClick={confirmWithdrawal}
+              disabled={buttonIsLoading}
             >
-              Ya, Lanjutkan Penarikan
+              {buttonIsLoading ? <><Loader2 />Penarikan sedang diproses</> : "Ya, Lanjutkan Penarikan"}
             </Button>
           </DialogFooter>
         </DialogContent>

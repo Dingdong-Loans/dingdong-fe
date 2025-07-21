@@ -253,61 +253,61 @@ const Dashboard = () => {
   }, []);
 
   // Convert real loans or use mock data
-  const mockLoans: LoanData[] = [
-    // Mock data for demo
-    {
-      id: "Pinjaman Modal Kerja #001",
-      date: "14 Nov 2024",
-      collateral: "12 BTC",
-      tenor: "12 Bulan",
-      amount: "50.000.000",
-      size: "45.000.000",
-      status: "active" as const,
-      monthlyPayment: "4.500.000",
-      interestRate: "1.5%",
-      dueDate: "14 Desember 2024",
-    },
-    {
-      id: "LOAN-002",
-      date: "28 Okt 2024",
-      collateral: "8 ETH",
-      tenor: "24 Bulan",
-      amount: "30.000.000",
-      size: "18.000.000",
-      status: "active" as const,
-      monthlyPayment: "2.187.500",
-      interestRate: "9.0%",
-      dueDate: "28 November 2024",
-    },
-    {
-      id: "Pinjaman Ekspansi #003",
-      date: "15 Sep 2024",
-      collateral: "15 BTC",
-      tenor: "18 Bulan",
-      amount: "75.000.000",
-      size: "70.000.000",
-      status: "active" as const,
-      monthlyPayment: "6.875.000",
-      interestRate: "8.75%",
-      dueDate: "15 Oktober 2024",
-    },
-    {
-      id: "Pinjaman Darurat #004",
-      date: "01 Agu 2024",
-      collateral: "50 SOL",
-      tenor: "6 Bulan",
-      amount: "15.000.000",
-      size: "15.000.000",
-      status: "inactive" as const,
-      monthlyPayment: "N/A",
-      interestRate: "10.0%",
-      dueDate: "01 Februari 2025",
-    },
-  ];
+  // const mockLoans: LoanData[] = [
+  //   // Mock data for demo
+  //   {
+  //     id: "Pinjaman Modal Kerja #001",
+  //     date: "14 Nov 2024",
+  //     collateral: "12 BTC",
+  //     tenor: "12 Bulan",
+  //     amount: "50.000.000",
+  //     size: "45.000.000",
+  //     status: "active" as const,
+  //     monthlyPayment: "4.500.000",
+  //     interestRate: "1.5%",
+  //     dueDate: "14 Desember 2024",
+  //   },
+  //   {
+  //     id: "LOAN-002",
+  //     date: "28 Okt 2024",
+  //     collateral: "8 ETH",
+  //     tenor: "24 Bulan",
+  //     amount: "30.000.000",
+  //     size: "18.000.000",
+  //     status: "active" as const,
+  //     monthlyPayment: "2.187.500",
+  //     interestRate: "9.0%",
+  //     dueDate: "28 November 2024",
+  //   },
+  //   {
+  //     id: "Pinjaman Ekspansi #003",
+  //     date: "15 Sep 2024",
+  //     collateral: "15 BTC",
+  //     tenor: "18 Bulan",
+  //     amount: "75.000.000",
+  //     size: "70.000.000",
+  //     status: "active" as const,
+  //     monthlyPayment: "6.875.000",
+  //     interestRate: "8.75%",
+  //     dueDate: "15 Oktober 2024",
+  //   },
+  //   {
+  //     id: "Pinjaman Darurat #004",
+  //     date: "01 Agu 2024",
+  //     collateral: "50 SOL",
+  //     tenor: "6 Bulan",
+  //     amount: "15.000.000",
+  //     size: "15.000.000",
+  //     status: "inactive" as const,
+  //     monthlyPayment: "N/A",
+  //     interestRate: "10.0%",
+  //     dueDate: "01 Februari 2025",
+  //   },
+  // ];
 
   const activeLoans: LoanData[] = isConnected && userLoans.length > 0
     ? convertContractLoansToUI(userLoans)
-    : mockLoans;
+    : [];
 
   const portfolioItems = [
     {

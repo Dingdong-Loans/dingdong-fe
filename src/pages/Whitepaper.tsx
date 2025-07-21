@@ -39,7 +39,7 @@ const Whitepaper = () => {
       downloadPdf: "Download PDF",
       viewOnGithub: "Lihat di GitHub",
       version:
-        "Versi 1.0 | Diterbitkan: Desember 2024 | Terakhir Diperbarui: Desember 2024",
+        "Versi 1.0 | Diterbitkan: Mei 2025 | Terakhir Diperbarui: Mei 2025",
       tableOfContents: "Daftar Isi",
       sections: [
         { id: "abstract", title: "Abstrak", icon: BookOpen },
@@ -229,7 +229,7 @@ const Whitepaper = () => {
             ],
           },
         ],
-      },      
+      },
       tokenomics: {
         title: "6. Tokenomics IDRX",
         sections: [
@@ -479,24 +479,24 @@ const Whitepaper = () => {
       downloadPdf: "Download PDF",
       viewOnGithub: "View on GitHub",
       version:
-        "Version 1.0 | Published: December 2024 | Last Updated: December 2024",
+        "Version 1.0 | Published: May 2025 | Last Updated: May 2025",
       tableOfContents: "Table of Contents",
       sections: [
         { id: "abstract", title: "Abstract", icon: BookOpen },
-        { id: "introduction", title: "1. Introduction", icon: Globe },
-        { id: "problem", title: "2. Problem Statement", icon: TrendingUp },
-        { id: "solution", title: "3. Solution Overview", icon: CheckCircle },
+        { id: "introduction", title: "Introduction", icon: Globe },
+        { id: "problem", title: "Problem Statement", icon: TrendingUp },
+        { id: "solution", title: "Solution Overview", icon: CheckCircle },
         {
           id: "architecture",
-          title: "4. Technical Architecture",
+          title: "Technical Architecture",
           icon: Settings,
         },
-        { id: "kyc", title: "5. KYC/AML Module", icon: Shield },
-        { id: "tokenomics", title: "6. IDRX Tokenomics", icon: TrendingUp },
-        { id: "security", title: "7. Security Framework", icon: Lock },
-        { id: "governance", title: "8. Governance Model", icon: Users },
-        { id: "roadmap", title: "9. Development Roadmap", icon: ArrowRight },
-        { id: "conclusion", title: "10. Conclusion", icon: CheckCircle },
+        { id: "kyc", title: "KYC/AML Module", icon: Shield },
+        { id: "tokenomics", title: "IDRX Tokenomics", icon: TrendingUp },
+        { id: "security", title: "Security Framework", icon: Lock },
+        { id: "governance", title: "Governance Model", icon: Users },
+        { id: "roadmap", title: "Development Roadmap", icon: ArrowRight },
+        { id: "conclusion", title: "Conclusion", icon: CheckCircle },
       ],
       abstract: {
         title: "Abstract",
@@ -999,14 +999,14 @@ const Whitepaper = () => {
               </p>
 
               <div className="flex justify-center gap-4 mb-8">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                {/* <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
                   <Download className="w-5 h-5 mr-2" />
                   {currentContent.downloadPdf}
-                </Button>
-                <Button variant="outline" size="lg">
+                </Button> */}
+                {/* <Button variant="outline" size="lg">
                   <Globe className="w-5 h-5 mr-2" />
                   {currentContent.viewOnGithub}
-                </Button>
+                </Button> */}
               </div>
 
               <div className="text-sm text-muted-foreground">
@@ -1582,7 +1582,7 @@ const Whitepaper = () => {
                       <h3 className="text-xl font-semibold mb-4">
                         {section.subtitle}
                       </h3>
-                      
+
                       <div className="space-y-4">
                         {section.milestones.map((milestone, milestoneIndex) => (
                           <div key={milestoneIndex} className="border rounded-lg p-4 bg-accent">
@@ -1590,11 +1590,11 @@ const Whitepaper = () => {
                               <h4 className="font-semibold text-primary">
                                 {milestone.title}
                               </h4>
-                              <Badge 
+                              <Badge
                                 variant={
                                   milestone.status === "In Progress" ? "default" :
-                                  milestone.status === "Planned" ? "secondary" : 
-                                  "outline"
+                                    milestone.status === "Planned" ? "secondary" :
+                                      "outline"
                                 }
                               >
                                 {milestone.status}
@@ -1630,7 +1630,7 @@ const Whitepaper = () => {
                       <h3 className="text-xl font-semibold mb-4">
                         {section.subtitle}
                       </h3>
-                      
+
                       {section.content && (
                         <p className="text-muted-foreground leading-relaxed mb-4">
                           {section.content}
@@ -1668,7 +1668,7 @@ const Whitepaper = () => {
                       <Download className="w-5 h-5 mr-2" />
                       {currentContent.getFullWhitepaper.downloadFull}
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline"
                       size="lg"
                       className="text-muted-foreground">

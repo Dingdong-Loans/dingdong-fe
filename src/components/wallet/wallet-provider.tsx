@@ -78,57 +78,57 @@ function WalletStateController({ children }: { children: ReactNode }) {
 
     const { open } = useConnectModal();
 
-    const baseUrl =
-        import.meta.env.VITE_API_URL || "https://api.dingdong.loans";
+    // const baseUrl =
+    //     import.meta.env.VITE_API_URL || "https://api.dingdong.loans";
 
-    const signAuthMessage = useCallback(async () => {
-        // Check if access token already exists
-        const existingToken = localStorage.getItem("access_token");
-        if (existingToken) {
-            console.log("Access token already exists");
-            return;
-        }
-        try {
-            const response = await axios.post(`${baseUrl}/auth/request-message`, {
-                wallet_address: address,
-            });
+    // const signAuthMessage = useCallback(async () => {
+    //     // Check if access token already exists
+    //     const existingToken = localStorage.getItem("access_token");
+    //     if (existingToken) {
+    //         console.log("Access token already exists");
+    //         return;
+    //     }
+    //     try {
+    //         const response = await axios.post(`${baseUrl}/auth/request-message`, {
+    //             wallet_address: address,
+    //         });
 
-            const { message } = response.data;
-            const signature = await signMessageAsync({
-                message,
-                account: address as `0x${string}`,
-            });
+    //         const { message } = response.data;
+    //         const signature = await signMessageAsync({
+    //             message,
+    //             account: address as `0x${string}`,
+    //         });
 
-            const signatureResponse = await axios.post(`${baseUrl}/auth/verify`, {
-                message: message,
-                signature: signature,
-                wallet_address: address,
-            });
+    //         const signatureResponse = await axios.post(`${baseUrl}/auth/verify`, {
+    //             message: message,
+    //             signature: signature,
+    //             wallet_address: address,
+    //         });
 
-            const { access_token } = signatureResponse.data;
-            console.log("Access token received:", access_token);
-            localStorage.setItem("access_token", access_token);
-            console.log("Message signed successfully:", signature);
-        } catch (error) {
-            console.error("Error requesting or signing message:", error);
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Failed to authenticate wallet",
-            });
-        }
-    }, [address, signMessageAsync, toast, baseUrl]);
+    //         const { access_token } = signatureResponse.data;
+    //         console.log("Access token received:", access_token);
+    //         localStorage.setItem("access_token", access_token);
+    //         console.log("Message signed successfully:", signature);
+    //     } catch (error) {
+    //         console.error("Error requesting or signing message:", error);
+    //         toast({
+    //             variant: "destructive",
+    //             title: "Error",
+    //             description: "Failed to authenticate wallet",
+    //         });
+    //     }
+    // }, [address, signMessageAsync, toast, baseUrl]);
 
-    useEffect(() => {
-        if (wagmiStatus === "connected") {
-            console.log("Wallet connected successfully via wagmi:", address);
-            signAuthMessage();
-        } else if (wagmiStatus === "disconnected") {
-            console.log("Wallet disconnected via wagmi");
-            // Clear access token on disconnect
-            localStorage.removeItem("access_token");
-        }
-    }, [wagmiStatus, address, signAuthMessage]);
+    // useEffect(() => {
+    //     if (wagmiStatus === "connected") {
+    //         console.log("Wallet connected successfully via wagmi:", address);
+    //         signAuthMessage();
+    //     } else if (wagmiStatus === "disconnected") {
+    //         console.log("Wallet disconnected via wagmi");
+    //         // Clear access token on disconnect
+    //         localStorage.removeItem("access_token");
+    //     }
+    // }, [wagmiStatus, address, signAuthMessage]);
 
     const connect = async () => {
         console.warn(
