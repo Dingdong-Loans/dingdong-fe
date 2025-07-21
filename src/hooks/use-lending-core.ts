@@ -1,9 +1,6 @@
 import { useState, useRef } from "react";
-import {
-	contractUtils,
-	LOAN_CONTRACT_ABI,
-	CONTRACT_ADDRESSES,
-} from "@/lib/contract-utils";
+import { contractUtils, CONTRACT_ADDRESSES } from "@/lib/contract-utils";
+import { LOAN_CONTRACT_ABI } from "@/abis/lending-core";
 import { useWallet } from "./use-wallet";
 import { useToast } from "./use-toast";
 
@@ -67,6 +64,8 @@ export const useLendingCore = () => {
 			toast({
 				title: "Transaction Successful",
 				description: `${operation} completed successfully`,
+				className:
+					"border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
 			});
 			return result;
 		} catch (err) {
@@ -521,7 +520,6 @@ export const useLendingCore = () => {
 		collateralToken: `0x${string}`,
 		amount: bigint
 	) => {
-		
 		executeTransaction("Deposit Collateral", () =>
 			contractUtils.writeContract(
 				CONTRACT_ADDRESSES.LOAN_CONTRACT,
@@ -529,7 +527,7 @@ export const useLendingCore = () => {
 				"depositCollateral",
 				[collateralToken, amount]
 			)
-		);	
+		);
 	};
 
 	const repay = (collateralToken: `0x${string}`, amount: bigint) =>

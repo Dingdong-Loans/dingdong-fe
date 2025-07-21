@@ -48,7 +48,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getWalletTokenBalances, SUPPORTED_COLLATERAL_TOKENS } from "@/lib/contract-utils";
+import { useWallet } from "@/hooks/use-wallet";
+import { useCollateralManager } from "@/hooks/use-collateral-manager";
+import { useLendingCore } from "@/hooks/use-lending-core";
+import { getWalletTokenBalances, SUPPORTED_TOKENS } from "@/lib/contract-utils";
 
 
 
@@ -85,7 +88,12 @@ const DEPOSIT_SIMULATION_DELAY = 2000;
 const WITHDRAWAL_SIMULATION_DELAY = 2000;
 const MIN_AMOUNT_THRESHOLD = 0.00000001;
 
-const ManageCollateral = () => {
+const ManageCollateral = () => {  // User wallet
+  const { address } = useWallet();
+  // Contract hooks
+  const { depositCollateral } = useLendingCore();
+  const { withdraw: withdrawCollateral } = useCollateralManager();
+
   // State management
   const [isDepositConfirmOpen, setDepositConfirmOpen] = useState(false);
   const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
@@ -97,9 +105,8 @@ const ManageCollateral = () => {
   const [withdrawalStatus, setWithdrawalStatus] = useState<"ready" | "pending" | "completed">("ready");
   const [withdrawalError, setWithdrawalError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
-  const [availableCollateral, setAvailableCollateral] = useState<CollateralAsset[]>(() =>
-    SUPPORTED_COLLATERAL_TOKENS.map(token => ({
+  const [lastFetchTime, setLastFetchTime] = useState(0); const [availableCollateral, setAvailableCollateral] = useState<CollateralAsset[]>(() =>
+    SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(token => ({
       type: token.TOKEN_SYMBOL.toLowerCase(),
       symbol: token.TOKEN_SYMBOL,
       name: token.TOKEN_NAME,
@@ -144,11 +151,10 @@ const ManageCollateral = () => {
   const parseInputNumber = useCallback((value: string): number => {
     return parseFloat(value.replace(/\./g, "").replace(",", "."));
   }, []);
-
   // Memoized crypto rates
   const cryptoRates = useMemo(() => {
     const rates: Record<string, number> = {};
-    SUPPORTED_COLLATERAL_TOKENS.forEach(token => {
+    SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).forEach(token => {
       rates[token.TOKEN_SYMBOL.toLowerCase()] = token.TOKEN_SYMBOL === 'wETH' ? 37500000 : 1000000000;
     });
     return rates;
@@ -235,14 +241,9 @@ const ManageCollateral = () => {
   useEffect(() => {
     fetchBalances();
   }, [fetchBalances]);
-
-
-
-
-
   const getTokenBySymbol = useCallback((symbol: string) => {
-    return SUPPORTED_COLLATERAL_TOKENS.find(
-      token => token.TOKEN_SYMBOL.toLowerCase() === symbol.toLowerCase()
+    return SUPPORTED_TOKENS.find(
+      token => token.TOKEN_SYMBOL.toLowerCase() === symbol.toLowerCase() && token.COLLATERAL_TOKEN
     );
   }, []);
 
@@ -269,7 +270,6 @@ const ManageCollateral = () => {
       selectedAsset
     };
   }, [withdrawalCollateralType, withdrawalAmount, parseInputNumber, getAssetByType]);
-
   // Optimized handlers
   const handleDeposit = useCallback(() => {
     const validation = validateDepositInput();
@@ -293,15 +293,30 @@ const ManageCollateral = () => {
     setWithdrawConfirmOpen(true);
   }, [validateWithdrawalInput, showToast]);
 
-  // Optimized confirmation handlers
-  const confirmDeposit = useCallback(() => {
+  const confirmDeposit = useCallback(async (): Promise<void> => {
     const validation = validateDepositInput();
     if (!validation.isValid) return;
+
+    // Get token details
+    const token = getTokenBySymbol(depositCollateralType);
+    if (!token) {
+      showToast('error', "Deposit Gagal", "Token tidak didukung.");
+      return;
+    }
 
     setLoading(true);
     setDepositStatus("pending");
 
-    setTimeout(() => {
+    try {
+      // Convert amount to BigInt with correct decimals
+      const amountInWei = BigInt(Math.floor(validation.amount * 10 ** token.DECIMALS));      // Call the contract's depositCollateral function
+      // The LendingCore.depositCollateral function expects (collateralToken, amount)
+      await depositCollateral(
+        token.CONTRACT_ADDRESS as `0x${string}`,
+        amountInWei
+      );
+
+      // Update UI state after successful transaction
       setAvailableCollateral(prev => {
         const existingIndex = prev.findIndex(asset => asset.type === depositCollateralType);
 
@@ -311,9 +326,6 @@ const ManageCollateral = () => {
           updated[existingIndex] = updateAssetDisplay(updated[existingIndex], newAmount);
           return updated;
         } else {
-          const token = getTokenBySymbol(depositCollateralType);
-          if (!token) return prev;
-
           const newAsset: CollateralAsset = {
             type: depositCollateralType,
             symbol: depositCollateralType.toUpperCase(),
@@ -329,24 +341,49 @@ const ManageCollateral = () => {
       });
 
       setDepositStatus("completed");
-      setLoading(false);
       showToast('success', "Deposit Berhasil", `Jaminan ${depositAmount} ${depositCollateralType.toUpperCase()} telah ditambahkan.`);
 
       // Reset form
       setDepositAmount("");
       setDepositCollateralType("");
       setDepositConfirmOpen(false);
-    }, DEPOSIT_SIMULATION_DELAY);
-  }, [validateDepositInput, depositCollateralType, depositAmount, updateAssetDisplay, getTokenBySymbol, formatCurrency, calculateAssetValue, showToast]);
 
-  const confirmWithdrawal = useCallback(() => {
+      // Force refresh balances to show updated values
+      await forceRefreshBalances();
+    } catch (error) {
+      console.error("Deposit error:", error);
+      showToast('error', "Deposit Gagal", error instanceof Error ? error.message : "Terjadi kesalahan saat deposit jaminan.");
+    } finally {
+      setLoading(false);
+    }
+  }, [validateDepositInput, depositCollateralType, depositAmount, updateAssetDisplay, getTokenBySymbol, formatCurrency, calculateAssetValue, showToast, forceRefreshBalances, depositCollateral]);
+  const confirmWithdrawal = useCallback(async () => {
     const validation = validateWithdrawalInput();
     if (!validation.isValid) return;
+
+    // Get token details
+    const asset = getAssetByType(withdrawalCollateralType);
+    if (!asset) {
+      showToast('error', "Penarikan Gagal", "Jaminan tidak tersedia.");
+      return;
+    }
 
     setLoading(true);
     setWithdrawalStatus("pending");
 
-    setTimeout(() => {
+    try {
+      // Convert amount to BigInt with correct decimals
+      const amountInWei = BigInt(Math.floor(validation.amount * 10 ** asset.decimals));
+
+      // Call the contract's withdraw function
+      // The contract.withdraw function expects (user, token, amount)
+      await withdrawCollateral(
+        address as `0x${string}`,
+        asset.contractAddress as `0x${string}`,
+        amountInWei
+      );
+
+      // Update UI state after successful transaction
       setAvailableCollateral(prev =>
         prev
           .map(asset => {
@@ -360,15 +397,22 @@ const ManageCollateral = () => {
       );
 
       setWithdrawalStatus("completed");
-      setLoading(false);
       showToast('success', "Penarikan Berhasil", `Jaminan ${withdrawalAmount} ${withdrawalCollateralType.toUpperCase()} telah ditarik.`);
 
       // Reset form
       setWithdrawalAmount("");
       setWithdrawalCollateralType("");
       setWithdrawConfirmOpen(false);
-    }, WITHDRAWAL_SIMULATION_DELAY);
-  }, [validateWithdrawalInput, withdrawalCollateralType, withdrawalAmount, updateAssetDisplay, showToast]);
+
+      // Force refresh balances to show updated values
+      await forceRefreshBalances();
+    } catch (error) {
+      console.error("Withdrawal error:", error);
+      showToast('error', "Penarikan Gagal", error instanceof Error ? error.message : "Terjadi kesalahan saat menarik jaminan.");
+    } finally {
+      setLoading(false);
+    }
+  }, [validateWithdrawalInput, withdrawalCollateralType, withdrawalAmount, address, updateAssetDisplay, getAssetByType, showToast, forceRefreshBalances, withdrawCollateral]);
 
   // Max amount handlers
   const handleSetMaxWithdrawal = useCallback(() => {
@@ -474,9 +518,8 @@ const ManageCollateral = () => {
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih jenis crypto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SUPPORTED_COLLATERAL_TOKENS.map(token => (
+                          </SelectTrigger>                          <SelectContent>
+                            {SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(token => (
                               <SelectItem key={token.TOKEN_SYMBOL} value={token.TOKEN_SYMBOL.toLowerCase()}>
                                 {token.TOKEN_NAME} ({token.TOKEN_SYMBOL})
                               </SelectItem>
