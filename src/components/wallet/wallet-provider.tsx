@@ -6,7 +6,7 @@ import {
     useCallback,
 } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useSignMessage, WagmiProvider, type Config } from "wagmi";
+import { useSignMessage, useWriteContract, WagmiProvider, type Config } from "wagmi";
 import { useAccount, useBalance, useDisconnect } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -75,7 +75,6 @@ function WalletStateController({ children }: { children: ReactNode }) {
     const address = wagmiAddress;
     const isConnected = wagmiIsConnected;
     const balance = wagmiBalanceData?.formatted ?? "0";
-
     const { open } = useConnectModal();
 
     // const baseUrl =

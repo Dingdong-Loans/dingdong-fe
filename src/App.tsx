@@ -43,22 +43,10 @@ import LendingDashboard from "./components/LendingDashboard";
 const App = () => (
   // WalletProvider wraps everything to provide wallet functionality
   <WalletProvider>
-    {/* tooltip provider digunakan disini untuk membungkus keseluruhan web
-     supaya keseluruhan bagian di web ini dapat menggunakan fungsionalitas 
-     dari tootip dengan satu kali inisiasi. tooltip digunakan untuk memberikan 
-     informasi jika kita mengarahkan kursor ke ikon atau tombol yang ada 
-     di web ini. */}
     <TooltipProvider>
-      {/* Toaster dan Sonner digunakan disini supaya keseluruhan halaman dari web
-      dapat menerima notifikasi yang ada dari web */}
       <Toaster />
       <Sonner />
-
-      {/* BrowserRouter digunakan untuk menavigasi keseluruhan link aktif yang
-      ada di web ini. Komponen ini yang menghubungkan web dengan URL di 
-      address bar browser. */}
       <BrowserRouter>
-        {/* kumpulan route yang ada di web ini */}
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/register" element={<Register />} />
@@ -78,7 +66,6 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/partner" element={<Partner />} />
           {/* Catch-all route for 404 Not Found */}
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
