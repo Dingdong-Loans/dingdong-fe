@@ -10,6 +10,8 @@ import { useLendingCore, type Loan } from '@/hooks/use-lending-core';
 import { useToast } from '@/hooks/use-toast';
 import { formatEther, parseEther } from 'viem';
 import { SUPPORTED_COLLATERAL_TOKENS, SUPPORTED_BORROW_TOKENS } from '@/lib/contract-utils';
+import { useBatchGetDepositedCollateral } from '@/hooks/use-collateral-managerv2';
+import { useAccount } from 'wagmi';
 
 const LendingDashboard = () => {
     const {
@@ -33,6 +35,13 @@ const LendingDashboard = () => {
         addLiquidity,
         removeLiquidity,
     } = useLendingCore();
+
+    const { address: walletAddress } = useAccount();
+    const { collaterals, isLoading, error: fetchError, refetch } = useBatchGetDepositedCollateral(walletAddress);
+
+    // useEffect(() => { console.log(collaterals) }, [collaterals]);
+
+    // useEffect(() => { setInterval(() => { refetch() }, 10000) }, [])
 
     const { toast } = useToast();
 
@@ -387,7 +396,10 @@ const LendingDashboard = () => {
                     </CardHeader>
                 </Card>
             )}
-
+            {/* <Button onClick={() => {
+                console.log("clicked");
+                refetch();
+            }}>TESTING</Button> */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Market Overview */}
                 <Card>
