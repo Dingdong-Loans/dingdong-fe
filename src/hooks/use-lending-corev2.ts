@@ -8,6 +8,8 @@ import {
 import { erc20Abi, BaseError, type Address } from "viem";
 import { LOAN_CONTRACT_ABI } from "@/abis/lending-core";
 import { CONTRACT_ADDRESSES } from "@/lib/contract-utils";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 type BorrowTokenParams = {
 	borrowToken: Address; // _borrowToken parameter
@@ -17,6 +19,8 @@ type BorrowTokenParams = {
 };
 
 export function useBorrowToken() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -38,19 +42,73 @@ export function useBorrowToken() {
 		collateralToken,
 		duration,
 	}: BorrowTokenParams) => {
-		const borrowResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "borrow",
-			args: [borrowToken, amount, collateralToken, duration],
-		});
+		try {
+			const borrowResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "borrow",
+				args: [borrowToken, amount, collateralToken, duration],
+			});
 
-		if (!borrowResult) {
-			throw new Error("Failed to submit borrow transaction");
+			if (!borrowResult) {
+				throw new Error("Failed to submit borrow transaction");
+			}
+
+			toast({
+				title: "Borrow Submitted",
+				description: "Your borrow transaction is being processed",
+				variant: "default",
+			});
+
+			return borrowResult;
+		} catch (error) {
+			toast({
+				title: "Borrow Failed",
+				description:
+					error instanceof Error ? error.message : "Failed to borrow",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Borrow Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return borrowResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Borrow Successful",
+				description: "Your borrow transaction has been confirmed",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Borrow Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
+
 	return {
 		borrow,
 		isPending: isRegularTxPending,
@@ -142,6 +200,8 @@ export function useGetCurrentInterestRate(
 
 // Liquidity Management Hooks
 export function useAddLiquidity() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -164,19 +224,75 @@ export function useAddLiquidity() {
 		borrowToken: Address;
 		amount: bigint;
 	}) => {
-		const addLiquidityResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "addLiquidity",
-			args: [borrowToken, amount],
-		});
+		try {
+			const addLiquidityResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "addLiquidity",
+				args: [borrowToken, amount],
+			});
 
-		if (!addLiquidityResult) {
-			throw new Error("Failed to submit add liquidity transaction");
+			if (!addLiquidityResult) {
+				throw new Error("Failed to submit add liquidity transaction");
+			}
+
+			toast({
+				title: "Add Liquidity Submitted",
+				description:
+					"Your add liquidity transaction is being processed",
+				variant: "default",
+			});
+
+			return addLiquidityResult;
+		} catch (error) {
+			toast({
+				title: "Add Liquidity Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to add liquidity",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Add Liquidity Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return addLiquidityResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Add Liquidity Successful",
+				description: "Your liquidity has been added successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Add Liquidity Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		addLiquidity,
@@ -191,6 +307,8 @@ export function useAddLiquidity() {
 }
 
 export function useRemoveLiquidity() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -213,19 +331,77 @@ export function useRemoveLiquidity() {
 		borrowToken: Address;
 		amount: bigint;
 	}) => {
-		const removeLiquidityResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "removeLiquidity",
-			args: [borrowToken, amount],
-		});
+		try {
+			const removeLiquidityResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "removeLiquidity",
+				args: [borrowToken, amount],
+			});
 
-		if (!removeLiquidityResult) {
-			throw new Error("Failed to submit remove liquidity transaction");
+			if (!removeLiquidityResult) {
+				throw new Error(
+					"Failed to submit remove liquidity transaction"
+				);
+			}
+
+			toast({
+				title: "Remove Liquidity Submitted",
+				description:
+					"Your remove liquidity transaction is being processed",
+				variant: "default",
+			});
+
+			return removeLiquidityResult;
+		} catch (error) {
+			toast({
+				title: "Remove Liquidity Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to remove liquidity",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Remove Liquidity Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return removeLiquidityResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Remove Liquidity Successful",
+				description: "Your liquidity has been removed successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Remove Liquidity Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		removeLiquidity,
@@ -241,6 +417,8 @@ export function useRemoveLiquidity() {
 
 // Collateral Management Hooks
 export function useDepositCollateral() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -256,6 +434,7 @@ export function useDepositCollateral() {
 	} = useWaitForTransactionReceipt({
 		hash: regularTxHash,
 	});
+
 	const depositCollateral = async ({
 		collateralToken,
 		amount,
@@ -263,19 +442,77 @@ export function useDepositCollateral() {
 		collateralToken: Address;
 		amount: bigint;
 	}) => {
-		const depositResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "depositCollateral",
-			args: [collateralToken, amount],
-		});
+		try {
+			const depositResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "depositCollateral",
+				args: [collateralToken, amount],
+			});
 
-		if (!depositResult) {
-			throw new Error("Failed to submit deposit transaction");
+			if (!depositResult) {
+				throw new Error("Failed to submit deposit transaction");
+			}
+
+			// Show toast for transaction submitted
+			toast({
+				title: "Deposit Submitted",
+				description: "Your deposit transaction is being processed",
+				variant: "default",
+			});
+
+			return depositResult;
+		} catch (error) {
+			// Show error toast
+			toast({
+				title: "Deposit Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to deposit collateral",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	// Effect to show toasts based on transaction states
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Deposit Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return depositResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Deposit Successful",
+				description: "Your collateral has been deposited successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "destructive",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Deposit Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		depositCollateral,
@@ -290,6 +527,8 @@ export function useDepositCollateral() {
 }
 
 export function useWithdrawCollateral() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -305,6 +544,7 @@ export function useWithdrawCollateral() {
 	} = useWaitForTransactionReceipt({
 		hash: regularTxHash,
 	});
+
 	const withdrawCollateral = async ({
 		collateralToken,
 		amount,
@@ -312,19 +552,74 @@ export function useWithdrawCollateral() {
 		collateralToken: Address;
 		amount: bigint;
 	}) => {
-		const withdrawResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "withdrawCollateral",
-			args: [collateralToken, amount],
-		});
+		try {
+			const withdrawResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "withdrawCollateral",
+				args: [collateralToken, amount],
+			});
 
-		if (!withdrawResult) {
-			throw new Error("Failed to submit withdraw transaction");
+			if (!withdrawResult) {
+				throw new Error("Failed to submit withdraw transaction");
+			}
+
+			toast({
+				title: "Withdraw Submitted",
+				description: "Your withdraw transaction is being processed",
+				variant: "default",
+			});
+
+			return withdrawResult;
+		} catch (error) {
+			toast({
+				title: "Withdraw Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to withdraw collateral",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Withdraw Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return withdrawResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Withdraw Successful",
+				description: "Your collateral has been withdrawn successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Withdraw Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		withdrawCollateral,
@@ -340,6 +635,8 @@ export function useWithdrawCollateral() {
 
 // Loan Repayment Hook
 export function useRepayLoan() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -362,19 +659,74 @@ export function useRepayLoan() {
 		collateralToken: Address;
 		amount: bigint;
 	}) => {
-		const repayResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "repay",
-			args: [collateralToken, amount],
-		});
+		try {
+			const repayResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "repay",
+				args: [collateralToken, amount],
+			});
 
-		if (!repayResult) {
-			throw new Error("Failed to submit repay transaction");
+			if (!repayResult) {
+				throw new Error("Failed to submit repay transaction");
+			}
+
+			toast({
+				title: "Repay Submitted",
+				description: "Your repay transaction is being processed",
+				variant: "default",
+			});
+
+			return repayResult;
+		} catch (error) {
+			toast({
+				title: "Repay Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to repay loan",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Repay Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return repayResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Repay Successful",
+				description: "Your loan has been repaid successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Repay Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		repayLoan,
@@ -390,6 +742,8 @@ export function useRepayLoan() {
 
 // Liquidation Hooks
 export function useLiquidateLoan() {
+	const { toast } = useToast();
+
 	const {
 		data: regularTxHash,
 		isPending: isRegularTxPending,
@@ -405,6 +759,7 @@ export function useLiquidateLoan() {
 	} = useWaitForTransactionReceipt({
 		hash: regularTxHash,
 	});
+
 	const liquidateLoan = async ({
 		user,
 		collateralToken,
@@ -412,19 +767,74 @@ export function useLiquidateLoan() {
 		user: Address;
 		collateralToken: Address;
 	}) => {
-		const liquidateResult = await writeRegularTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "liquidate",
-			args: [user, collateralToken],
-		});
+		try {
+			const liquidateResult = await writeRegularTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "liquidate",
+				args: [user, collateralToken],
+			});
 
-		if (!liquidateResult) {
-			throw new Error("Failed to submit liquidate transaction");
+			if (!liquidateResult) {
+				throw new Error("Failed to submit liquidate transaction");
+			}
+
+			toast({
+				title: "Liquidate Submitted",
+				description: "Your liquidate transaction is being processed",
+				variant: "default",
+			});
+
+			return liquidateResult;
+		} catch (error) {
+			toast({
+				title: "Liquidate Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to liquidate loan",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isRegularTxConfirming) {
+			toast({
+				title: "Liquidate Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return liquidateResult;
-	};
+		if (isRegularTxConfirmed) {
+			toast({
+				title: "Liquidate Successful",
+				description: "The loan has been liquidated successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isRegularTxFailed) {
+			toast({
+				title: "Liquidate Failed",
+				description: regularTxError?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [
+		isRegularTxConfirming,
+		isRegularTxConfirmed,
+		isRegularTxFailed,
+		regularTxError,
+		toast,
+	]);
 
 	return {
 		liquidateLoan,
@@ -442,6 +852,8 @@ export function useLiquidateLoan() {
 
 // Admin Hooks
 export function useContractPause() {
+	const { toast } = useToast();
+
 	const {
 		data: txHash,
 		isPending,
@@ -459,18 +871,67 @@ export function useContractPause() {
 	});
 
 	const pause = async () => {
-		const result = await writeTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "pause",
-		});
+		try {
+			const result = await writeTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "pause",
+			});
 
-		if (!result) {
-			throw new Error("Failed to submit pause transaction");
+			if (!result) {
+				throw new Error("Failed to submit pause transaction");
+			}
+
+			toast({
+				title: "Pause Submitted",
+				description: "Your pause transaction is being processed",
+				variant: "default",
+			});
+
+			return result;
+		} catch (error) {
+			toast({
+				title: "Pause Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to pause contract",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isConfirming) {
+			toast({
+				title: "Pause Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return result;
-	};
+		if (isConfirmed) {
+			toast({
+				title: "Pause Successful",
+				description: "The contract has been paused successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isFailed) {
+			toast({
+				title: "Pause Failed",
+				description: error?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [isConfirming, isConfirmed, isFailed, error, toast]);
 
 	return {
 		pause,
@@ -485,6 +946,8 @@ export function useContractPause() {
 }
 
 export function useContractUnpause() {
+	const { toast } = useToast();
+
 	const {
 		data: txHash,
 		isPending,
@@ -502,18 +965,67 @@ export function useContractUnpause() {
 	});
 
 	const unpause = async () => {
-		const result = await writeTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "unpause",
-		});
+		try {
+			const result = await writeTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "unpause",
+			});
 
-		if (!result) {
-			throw new Error("Failed to submit unpause transaction");
+			if (!result) {
+				throw new Error("Failed to submit unpause transaction");
+			}
+
+			toast({
+				title: "Unpause Submitted",
+				description: "Your unpause transaction is being processed",
+				variant: "default",
+			});
+
+			return result;
+		} catch (error) {
+			toast({
+				title: "Unpause Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to unpause contract",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isConfirming) {
+			toast({
+				title: "Unpause Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return result;
-	};
+		if (isConfirmed) {
+			toast({
+				title: "Unpause Successful",
+				description: "The contract has been unpaused successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isFailed) {
+			toast({
+				title: "Unpause Failed",
+				description: error?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [isConfirming, isConfirmed, isFailed, error, toast]);
 
 	return {
 		unpause,
@@ -529,6 +1041,8 @@ export function useContractUnpause() {
 
 // Parameter Management Hooks
 export function useSetLTV(collateralToken: Address, ltvBps: number) {
+	const { toast } = useToast();
+
 	const {
 		data: txHash,
 		isPending,
@@ -546,19 +1060,68 @@ export function useSetLTV(collateralToken: Address, ltvBps: number) {
 	});
 
 	const setLTV = async () => {
-		const result = await writeTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "setLTV",
-			args: [collateralToken, ltvBps],
-		});
+		try {
+			const result = await writeTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "setLTV",
+				args: [collateralToken, ltvBps],
+			});
 
-		if (!result) {
-			throw new Error("Failed to submit setLTV transaction");
+			if (!result) {
+				throw new Error("Failed to submit setLTV transaction");
+			}
+
+			toast({
+				title: "Set LTV Submitted",
+				description: "Your LTV update transaction is being processed",
+				variant: "default",
+			});
+
+			return result;
+		} catch (error) {
+			toast({
+				title: "Set LTV Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to set LTV",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isConfirming) {
+			toast({
+				title: "Set LTV Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return result;
-	};
+		if (isConfirmed) {
+			toast({
+				title: "Set LTV Successful",
+				description: "The LTV has been updated successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isFailed) {
+			toast({
+				title: "Set LTV Failed",
+				description: error?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [isConfirming, isConfirmed, isFailed, error, toast]);
 
 	return {
 		setLTV,
@@ -573,6 +1136,8 @@ export function useSetLTV(collateralToken: Address, ltvBps: number) {
 }
 
 export function useSetGracePeriod(period: number) {
+	const { toast } = useToast();
+
 	const {
 		data: txHash,
 		isPending,
@@ -590,19 +1155,69 @@ export function useSetGracePeriod(period: number) {
 	});
 
 	const setGracePeriod = async () => {
-		const result = await writeTx({
-			address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
-			abi: LOAN_CONTRACT_ABI,
-			functionName: "setGracePeriod",
-			args: [period],
-		});
+		try {
+			const result = await writeTx({
+				address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+				abi: LOAN_CONTRACT_ABI,
+				functionName: "setGracePeriod",
+				args: [period],
+			});
 
-		if (!result) {
-			throw new Error("Failed to submit setGracePeriod transaction");
+			if (!result) {
+				throw new Error("Failed to submit setGracePeriod transaction");
+			}
+
+			toast({
+				title: "Set Grace Period Submitted",
+				description:
+					"Your grace period update transaction is being processed",
+				variant: "default",
+			});
+
+			return result;
+		} catch (error) {
+			toast({
+				title: "Set Grace Period Failed",
+				description:
+					error instanceof Error
+						? error.message
+						: "Failed to set grace period",
+				variant: "destructive",
+			});
+			throw error;
+		}
+	};
+
+	useEffect(() => {
+		if (isConfirming) {
+			toast({
+				title: "Set Grace Period Processing",
+				description: "Waiting for transaction confirmation",
+				className:
+					"bg-yellow-100 text-yellow-900 border border-yellow-400",
+				variant: "default",
+			});
 		}
 
-		return result;
-	};
+		if (isConfirmed) {
+			toast({
+				title: "Set Grace Period Successful",
+				description: "The grace period has been updated successfully",
+				className:
+					"bg-green-100 text-green-900 border border-green-400",
+				variant: "default",
+			});
+		}
+
+		if (isFailed) {
+			toast({
+				title: "Set Grace Period Failed",
+				description: error?.message || "Transaction failed",
+				className: "bg-red-100 text-red-900 border border-red-400",
+				variant: "destructive",
+			});
+		}
+	}, [isConfirming, isConfirmed, isFailed, error, toast]);
 
 	return {
 		setGracePeriod,

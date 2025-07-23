@@ -314,7 +314,7 @@ const ManageCollateral = () => {  // User wallet
     setWithdrawConfirmOpen(true);
   };
 
-  const confirmDeposit = useCallback(async (): Promise<void> => {
+  const confirmDeposit = async () => {
     setButtonIsLoading(true);
     const validation = validateDepositInput();
     if (!validation.isValid) return;
@@ -334,10 +334,10 @@ const ManageCollateral = () => {  // User wallet
       const amountInWei = BigInt(Math.floor(validation.amount * 10 ** token.DECIMALS));
 
       // Call the contract's depositCollateral function
-      await depositCollateral(
-        token.CONTRACT_ADDRESS as `0x${string}`,
-        amountInWei
-      );
+      await depositCollateralV2({
+        collateralToken: token.CONTRACT_ADDRESS,
+        amount: amountInWei
+      });
 
       setDepositStatus("completed");
 
@@ -358,7 +358,8 @@ const ManageCollateral = () => {  // User wallet
       setLoading(false);
       setButtonIsLoading(false);
     }
-  }, [validateDepositInput, depositCollateralType, getTokenBySymbol, showToast, forceRefreshBalances, refetchDepositedCollateral, depositCollateral]);
+  }
+
 
   const confirmWithdrawal = useCallback(async () => {
     setButtonIsLoading(true);
@@ -512,7 +513,8 @@ const ManageCollateral = () => {  // User wallet
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih jenis crypto" />
-                          </SelectTrigger>                          <SelectContent>
+                          </SelectTrigger>
+                          <SelectContent>
                             {SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN).map(token => (
                               <SelectItem key={token.TOKEN_SYMBOL} value={token.TOKEN_SYMBOL.toLowerCase()}>
                                 {token.TOKEN_NAME} ({token.TOKEN_SYMBOL})

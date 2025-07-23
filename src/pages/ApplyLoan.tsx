@@ -9,164 +9,114 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calculator, AlertCircle, CheckCircle, ArrowRight, Wallet, TrendingUp, HelpCircle, Check } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Calculator, AlertCircle, CheckCircle, ArrowRight, Wallet, TrendingUp, HelpCircle, Check, ArrowDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { SUPPORTED_COLLATERAL_TOKENS, SUPPORTED_BORROW_TOKENS, SUPPORTED_TOKENS } from "@/lib/contract-utils";
 import { useLendingCore } from "@/hooks/use-lending-core";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCollateralManager } from "@/hooks/use-collateral-manager";
+import { useBatchGetDepositedCollateral } from "@/hooks/use-collateral-managerv2";
+import { useAccount } from "wagmi";
 
 const ApplyLoan = () => {
   const [loanAmount, setLoanAmount] = useState("");
+  const [borrowAmount, setBorrowAmount] = useState("");
   const [duration, setDuration] = useState("");
   const [loading, setLoading] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const navigate = useNavigate();
   const { address } = useWallet();
-  const lendingCore = useLendingCore();
-  const collateralManager = useCollateralManager();
 
   // State for collateral and borrow tokens
   const [selectedCollateralToken, setSelectedCollateralToken] = useState("");
   const [selectedBorrowToken, setSelectedBorrowToken] = useState("");
   const [maxBorrowAmount, setMaxBorrowAmount] = useState(0);
-  const [collateralBalances, setCollateralBalances] = useState<Record<string, number>>({});
-  const [loadingBalances, setLoadingBalances] = useState(false);
-  const [lastBalanceFetch, setLastBalanceFetch] = useState(0);
-  const [fetchErrorCount, setFetchErrorCount] = useState(0);
+
+  // Example price rates (would come from an oracle in production)
+  const TOKEN_TO_IDR_RATE = useMemo(() => ({
+    USDT: 15800,
+    USDC: 15800,
+    ETH: 16500 * 2000, // Assuming 1 ETH = 2000 USD
+    WBTC: 15800 * 30000, // Assuming 1 BTC = 30000 USD
+  }), []);
+
+  // Use the batch hook to get collateral balances
+  const { collaterals: collateralTokensWithBalances, isLoading: isLoadingBalances } = useBatchGetDepositedCollateral(address as `0x${string}`);
+
+  // Compute collateral balances from the hook results
+  const collateralBalances = useMemo(() => {
+    return collateralTokensWithBalances.reduce((acc, token) => {
+      if (token.depositedCollateral !== undefined) {
+        console.log('usememo trigger', acc, token);
+        // Convert BigInt to readable number with proper decimals
+        acc[token.CONTRACT_ADDRESS] = Number(token.depositedCollateral) / (10 ** token.DECIMALS);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [collateralTokensWithBalances]);
+
+  // Calculate total value in IDR for all collaterals
+  const totalCollateralValueIDR = useMemo(() => {
+    return collateralTokensWithBalances.reduce((total, token) => {
+      if (token.depositedCollateral !== undefined) {
+        const balance = Number(token.depositedCollateral) / (10 ** token.DECIMALS);
+        const rate = TOKEN_TO_IDR_RATE[token.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+        total += balance * rate;
+      }
+      return total;
+    }, 0);
+  }, [collateralTokensWithBalances, TOKEN_TO_IDR_RATE]);
+
+  // Update the maxBorrowAmount calculation to use actual collateral value
+  useEffect(() => {
+    if (selectedCollateralToken && selectedBorrowToken && address) {
+      console.log("reached set max amount");
+      // Create cache key from tokens
+      // const cacheKey = `${selectedCollateralToken}_${selectedBorrowToken}`;
+
+      // Check if we have a valid cached value
+      // const now = Date.now();
+      // if (
+      //   maxBorrowCache &&
+      //   maxBorrowCache.key === cacheKey &&
+      //   now - maxBorrowCache.timestamp < CACHE_DURATION
+      // ) {
+      //   console.log("Using cached max borrow amount");
+      //   setMaxBorrowAmount(maxBorrowCache.amount);
+      //   return;
+      // }
+
+      const selectedCollateral = collateralTokensWithBalances.find(
+        token => token.CONTRACT_ADDRESS === selectedCollateralToken
+      );
+
+      if (selectedCollateral) {
+        const balance = selectedCollateral.depositedCollateral
+          ? Number(selectedCollateral.depositedCollateral) / (10 ** selectedCollateral.DECIMALS)
+          : 0;
+
+        // Calculate max borrow based on LTV and balance
+        const ltv = selectedCollateral.LTV || 0;
+        const rate = TOKEN_TO_IDR_RATE[selectedCollateral.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+        const maxLoanable = balance * ltv * rate;
+        setMaxBorrowAmount(maxLoanable);
+
+        // Cache the calculated value
+        // setMaxBorrowCache({
+        //   key: cacheKey,
+        //   amount: maxLoanable,
+        //   timestamp: now
+        // });
+      }
+    }
+  }, [selectedCollateralToken, selectedBorrowToken, address, collateralTokensWithBalances, TOKEN_TO_IDR_RATE]);
 
   const [currentTutorialStepIndex, setCurrentTutorialStepIndex] = useState(0);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   // Example collateral value (would come from the wallet or contract)
-  const totalCollateralValueIDR = 130000000;
-  const usdToIdrRate = 15800;
-
-  // Cache configuration
-  const CACHE_DURATION = 30000; // 30 seconds cache validity
-  const RETRY_BACKOFF_BASE = 1000; // Base backoff time in ms
-  const MAX_RETRIES = 3;
-
-  // Fetch single token balance
-  const fetchSingleTokenBalance = async (token: typeof SUPPORTED_TOKENS[0]) => {
-    try {
-      // Use getCollateralBalance from the collateralManager hook
-      const balance = await collateralManager.getCollateralBalance(
-        address as `0x${string}`,
-        token.CONTRACT_ADDRESS
-      );
-
-      // Convert balance to a readable number
-      const decimals = token.DECIMALS;
-      const readableBalance = Number(balance) / (10 ** decimals);
-      return { address: token.CONTRACT_ADDRESS, balance: readableBalance };
-    } catch (err) {
-      console.error(`Error fetching balance for ${token.TOKEN_SYMBOL}:`, err);
-      return { address: token.CONTRACT_ADDRESS, balance: 0, error: true };
-    }
-  };
-
-  // Fetch collateral balances with cache control and retry logic
-  const fetchBalances = async (forceRefresh = false) => {
-    // Check if we have a cached balance and it's still valid
-    const now = Date.now();
-    if (!forceRefresh && lastBalanceFetch > 0 && now - lastBalanceFetch < CACHE_DURATION) {
-      console.log("Using cached balances");
-      return;
-    }
-
-    try {
-      setLoadingBalances(true);
-      // Filter for collateral tokens
-      const collateralTokens = SUPPORTED_TOKENS.filter(token => token.COLLATERAL_TOKEN);
-
-      // If user has selected a token, prioritize fetching its balance
-      let tokensToFetch = [...collateralTokens];
-      if (selectedCollateralToken) {
-        tokensToFetch = [
-          ...collateralTokens.filter(token => token.CONTRACT_ADDRESS === selectedCollateralToken),
-          ...collateralTokens.filter(token => token.CONTRACT_ADDRESS !== selectedCollateralToken)
-        ];
-      }
-
-      const balances: Record<string, number> = { ...collateralBalances };
-
-      // Fetch only selected token balance if it exists
-      if (selectedCollateralToken) {
-        const selectedToken = tokensToFetch.find(token => token.CONTRACT_ADDRESS === selectedCollateralToken);
-        if (selectedToken) {
-          const result = await fetchSingleTokenBalance(selectedToken);
-          if (!result.error) {
-            balances[result.address] = result.balance;
-          }
-        }
-        setCollateralBalances(balances);
-        setLastBalanceFetch(Date.now());
-        setFetchErrorCount(0);
-      }
-      // Fetch all balances, but sequentially to avoid RPC spamming
-      else {
-        // Fetch first token immediately, others with delay
-        if (tokensToFetch.length > 0) {
-          const result = await fetchSingleTokenBalance(tokensToFetch[0]);
-          if (!result.error) {
-            balances[result.address] = result.balance;
-            setCollateralBalances({ ...balances });
-          }
-
-          // Fetch remaining tokens with a delay between requests
-          for (let i = 1; i < tokensToFetch.length; i++) {
-            setTimeout(async () => {
-              try {
-                const result = await fetchSingleTokenBalance(tokensToFetch[i]);
-                if (!result.error) {
-                  setCollateralBalances(prev => ({
-                    ...prev,
-                    [result.address]: result.balance
-                  }));
-                }
-              } catch (err) {
-                console.error("Error in delayed token balance fetch:", err);
-              }
-            }, i * 1000); // 1 second delay between requests
-          }
-
-          setLastBalanceFetch(Date.now());
-          setFetchErrorCount(0);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch collateral balances:", error);
-      // Implement exponential backoff for retries
-      const newErrorCount = fetchErrorCount + 1;
-      setFetchErrorCount(newErrorCount);
-
-      if (newErrorCount <= MAX_RETRIES) {
-        const backoffTime = RETRY_BACKOFF_BASE * (2 ** (newErrorCount - 1));
-        console.log(`Retrying balance fetch in ${backoffTime}ms (attempt ${newErrorCount})`);
-        setTimeout(() => fetchBalances(forceRefresh), backoffTime);
-      }
-    } finally {
-      setLoadingBalances(false);
-    }
-  };
-
-  // Fetch balances on mount and when address changes
-  useEffect(() => {
-    if (address) {
-      fetchBalances(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address]);
-
-  // Refetch selected token balance when selection changes
-  useEffect(() => {
-    if (address && selectedCollateralToken) {
-      fetchBalances(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCollateralToken, address]);
+  // const totalCollateralValueIDR = 130000000;
 
   // Get the selected tokens
   const selectedCollateralTokenDetails = SUPPORTED_TOKENS.find(
@@ -177,89 +127,6 @@ const ApplyLoan = () => {
     token => token.CONTRACT_ADDRESS === selectedBorrowToken
   );
 
-  // Store max borrow amounts with cache expiration
-  const [maxBorrowCache, setMaxBorrowCache] = useState<{
-    key: string;
-    amount: number;
-    timestamp: number;
-  } | null>(null);
-
-  // Calculate max borrowable amount based on LTV with caching
-  useEffect(() => {
-    if (selectedCollateralToken && selectedBorrowToken && address) {
-      // Create cache key from tokens
-      const cacheKey = `${selectedCollateralToken}_${selectedBorrowToken}`;
-
-      // Check if we have a valid cached value
-      const now = Date.now();
-      if (
-        maxBorrowCache &&
-        maxBorrowCache.key === cacheKey &&
-        now - maxBorrowCache.timestamp < CACHE_DURATION
-      ) {
-        console.log("Using cached max borrow amount");
-        setMaxBorrowAmount(maxBorrowCache.amount);
-        return;
-      }
-
-      // Calculate new max borrow amount
-      const collateralToken = SUPPORTED_TOKENS.find(
-        token => token.CONTRACT_ADDRESS === selectedCollateralToken
-      );
-
-      if (collateralToken) {
-        const ltv = collateralToken.LTV || 0;
-        const maxLoanable = totalCollateralValueIDR * ltv;
-        setMaxBorrowAmount(maxLoanable);
-
-        // Cache the calculated value
-        setMaxBorrowCache({
-          key: cacheKey,
-          amount: maxLoanable,
-          timestamp: now
-        });
-      }
-
-      // In a real application, we'd call the contract to get the max borrow amount
-      // with a debounce to prevent RPC spamming:
-      /*
-      const getMaxBorrow = async () => {
-        try {
-          const maxBorrow = await lendingCore.getMaxBorrowBeforeInterest(
-            address as `0x${string}`,
-            selectedBorrowToken as `0x${string}`,
-            selectedCollateralToken as `0x${string}`
-          );
-          const maxLoanable = Number(maxBorrow);
-          setMaxBorrowAmount(maxLoanable);
-          
-          // Cache the fetched value
-          setMaxBorrowCache({
-            key: cacheKey,
-            amount: maxLoanable,
-            timestamp: Date.now()
-          });
-        } catch (error) {
-          console.error("Error fetching max borrow amount:", error);
-          // Use fallback calculation on error
-          if (collateralToken) {
-            const ltv = collateralToken.LTV || 0;
-            const maxLoanable = totalCollateralValueIDR * ltv;
-            setMaxBorrowAmount(maxLoanable);
-          }
-        }
-      };
-      
-      // Use debounce to prevent multiple rapid calls
-      const debounceTimer = setTimeout(() => {
-        getMaxBorrow();
-      }, 300);
-      
-      return () => clearTimeout(debounceTimer);
-      */
-    }
-  }, [selectedCollateralToken, selectedBorrowToken, address, CACHE_DURATION, maxBorrowCache]);
-
   // Convert loan amount to number for comparisons
   const numericLoanAmount = parseFloat(loanAmount.replace(/\./g, ''));
   const isLoanAmountExceeded = numericLoanAmount > maxBorrowAmount;
@@ -267,17 +134,55 @@ const ApplyLoan = () => {
   // Handle loan amount change with formatting
   const handleLoanAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
-    // Remove all non-digit characters
-    const numericValue = rawValue.replace(/[^0-9]/g, '');
+    // Allow digits and one decimal point
+    const numericValue = rawValue.replace(/[^0-9.]/g, '');
 
-    if (numericValue === '') {
+    // Ensure only one decimal point
+    const parts = numericValue.split('.');
+    if (parts.length > 2) return;
+
+    // Limit decimal places to 2
+    // if (parts[1] && parts[1].length > 2) return;
+
+    if (numericValue === '' || numericValue === '.') {
       setLoanAmount('');
       return;
     }
 
-    // Format number with thousands separator
-    const formattedValue = new Intl.NumberFormat('id-ID').format(parseInt(numericValue, 10));
-    setLoanAmount(formattedValue);
+    setLoanAmount(numericValue);
+  };
+
+  const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    // Allow digits and one decimal point
+    const numericValue = rawValue.replace(/[^0-9.]/g, '');
+
+    // Ensure only one decimal point
+    const parts = numericValue.split('.');
+    if (parts.length > 2) return;
+
+    // Limit decimal places to 2
+    // if (parts[1] && parts[1].length > 2) return;
+
+    if (numericValue === '' || numericValue === '.') {
+      setBorrowAmount('');
+      return;
+    }
+
+    // Convert borrowAmount to collateral value based on token rates
+    if (selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
+      const borrowRate = TOKEN_TO_IDR_RATE[selectedBorrowTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+      const collateralRate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+
+      // Convert borrow amount to IDR then to collateral token
+      const borrowAmountInIDR = parseFloat(numericValue) * borrowRate;
+      const collateralAmount = borrowAmountInIDR / collateralRate;
+
+      // Set the collateral amount
+      setLoanAmount(collateralAmount.toString());
+    }
+
+    setBorrowAmount(numericValue);
   };
 
   // Set max loan amount based on calculated max borrow
@@ -438,188 +343,216 @@ const ApplyLoan = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {selectedCollateralToken && selectedCollateralTokenDetails && (
-                      <Card className="bg-gray-50/50">
-                        <CardContent className="pt-4 space-y-3">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-3">
-                                {selectedCollateralTokenDetails.TOKEN_SYMBOL.substring(0, 2)}
-                              </div>
-                              <div>
-                                <div className="font-medium">{selectedCollateralTokenDetails.TOKEN_NAME}</div>
-                                <div className="text-xs text-muted-foreground">Nilai LTV: {(selectedCollateralTokenDetails.LTV * 100).toFixed(0)}%</div>
-                              </div>
+                    {/* Swap-like Interface */}
+                    <div className="space-y-4">
+                      {/* Collateral Token Input */}
+                      <div className="rounded-lg border bg-card p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm text-muted-foreground">Token Jaminan</Label>
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm text-muted-foreground">
+                              Saldo: {selectedCollateralToken && !isLoadingBalances
+                                ? `${collateralBalances[selectedCollateralToken] || '0'} ${selectedCollateralTokenDetails?.TOKEN_SYMBOL || ''}`
+                                : isLoadingBalances ? 'Memuat...' : '0'}
                             </div>
-                            <div className="flex items-center space-x-2">
-                              {collateralBalances[selectedCollateralToken] !== undefined && (
-                                <Badge variant="outline">
-                                  Saldo: {collateralBalances[selectedCollateralToken].toLocaleString('id-ID')} {selectedCollateralTokenDetails.TOKEN_SYMBOL}
-                                </Badge>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2 relative">
+                          <Input
+                            type="text"
+                            // inputMode="numeric"
+                            placeholder="0.0"
+                            value={loanAmount}
+                            onChange={handleLoanAmountChange}
+                            className={`${isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                            disabled={!selectedCollateralToken || !selectedBorrowToken}
+                          />
+
+                          <Select
+                            value={selectedCollateralToken}
+                            onValueChange={setSelectedCollateralToken}
+                          >
+                            <SelectTrigger className="w-[160px]">
+                              {selectedCollateralTokenDetails ? (
+                                <div className="flex items-center">
+                                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs mr-2">
+                                    {selectedCollateralTokenDetails.TOKEN_SYMBOL.substring(0, 2)}
+                                  </div>
+                                  <span>{selectedCollateralTokenDetails.TOKEN_SYMBOL}</span>
+                                </div>
+                              ) : (
+                                <SelectValue placeholder="Pilih Token" />
                               )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {collateralTokensWithBalances.map(token => (
+                                <SelectItem
+                                  key={token.CONTRACT_ADDRESS}
+                                  value={token.CONTRACT_ADDRESS}
+                                >
+                                  <div className="flex items-center">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs mr-2">
+                                      {token.TOKEN_SYMBOL.substring(0, 2)}
+                                    </div>
+                                    <span className="flex-1">{token.TOKEN_SYMBOL}</span>
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                      {token.depositedCollateral
+                                        ? (Number(token.depositedCollateral) / (10 ** token.DECIMALS)).toLocaleString('id-ID', { maximumFractionDigits: 6 })
+                                        : '0'}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedCollateralTokenDetails && (
+                          <div className="mt-2 flex justify-between items-center text-sm text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                              <span className="mr-1">LTV: </span>
+                              {(selectedCollateralTokenDetails.LTV * 100).toFixed(0)}%
+                            </Badge>
+                            <div>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 rounded-full"
-                                onClick={() => fetchBalances(true)}
-                                disabled={loadingBalances}
+                                className="h-7 px-2 text-xs font-medium"
+                                onClick={() => {
+                                  if (selectedCollateralToken && selectedCollateralTokenDetails) {
+                                    const balance = collateralBalances[selectedCollateralToken] || 0;
+                                    const ltv = selectedCollateralTokenDetails.LTV || 0;
+                                    const rate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+                                    // Calculate 50% of the max borrowable amount
+                                    const maxAmount = balance * ltv * rate;
+                                    const amount = maxAmount * 0.5;
+                                    setLoanAmount(new Intl.NumberFormat('id-ID').format(amount));
+                                  }
+                                }}
+                                disabled={!selectedCollateralToken || !selectedBorrowToken}
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${loadingBalances ? 'animate-spin' : ''}`}>
-                                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
-                                </svg>
+                                50%
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs font-medium"
+                                onClick={handleSetMaxLoan}
+                                disabled={!selectedCollateralToken || !selectedBorrowToken}
+                              >
+                                MAX
                               </Button>
                             </div>
                           </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground flex items-center"><TrendingUp className="w-4 h-4 mr-2" />Maksimal Pinjaman</span>
-                            <span className="font-medium text-green-600">Rp {maxBorrowAmount.toLocaleString('id-ID')}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                        )}
+                      </div>
 
-                    {/* Collateral Token Visual Selection */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor="collateralToken">Token Jaminan</Label>
-                        <div className="flex items-center space-x-2">
-                          {loadingBalances && (
-                            <div className="text-xs text-muted-foreground flex items-center">
-                              <div className="h-3 w-3 rounded-full border-2 border-t-transparent border-primary animate-spin mr-2"></div>
-                              Memuat saldo...
-                            </div>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2 text-xs"
-                            onClick={() => fetchBalances(true)}
-                            disabled={loadingBalances}
-                          >
-                            Refresh
-                          </Button>
+                      {/* Swap Arrow */}
+                      <div className="flex justify-center">
+                        <div className="bg-background rounded-full p-2 -my-2 z-10">
+                          <ArrowDown className="h-6 w-6 text-muted-foreground" />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        {SUPPORTED_TOKENS
-                          .filter(token => token.COLLATERAL_TOKEN)
-                          .map(token => {
-                            const isSelected = selectedCollateralToken === token.CONTRACT_ADDRESS;
-                            const balance = collateralBalances[token.CONTRACT_ADDRESS] || 0;
-
-                            return (
-                              <div
-                                key={token.CONTRACT_ADDRESS}
-                                onClick={() => setSelectedCollateralToken(token.CONTRACT_ADDRESS)}
-                                className={`cursor-pointer transition-all duration-200 ${isSelected ? 'ring-2 ring-primary' : 'hover:bg-gray-50'}`}
-                              >
-                                <Card className={`overflow-hidden ${isSelected ? 'border-primary' : ''}`}>
-                                  <div className="flex">
-                                    {/* Token Icon/Image */}
-                                    <div className="flex items-center justify-center bg-gray-100 p-4 min-w-[80px]">
-                                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {/* Borrow Token Input */}
+                      <div className="rounded-lg border bg-card p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm text-muted-foreground">Token Pinjaman</Label>
+                          {selectedBorrowTokenDetails && (
+                            <div className="text-sm text-muted-foreground">
+                              Max: {maxBorrowAmount.toLocaleString('id-ID')}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Input
+                            type="text"
+                            // readOnly
+                            // disabled={false}
+                            placeholder="0.0"
+                            value={borrowAmount}
+                            onChange={handleBorrowAmountChange}
+                            className={""}
+                            disabled={!selectedBorrowToken}
+                          // className="bg-muted"
+                          />
+                          <Select
+                            value={selectedBorrowToken}
+                            onValueChange={setSelectedBorrowToken}
+                          >
+                            <SelectTrigger className="w-[160px]">
+                              {selectedBorrowTokenDetails ? (
+                                <div className="flex items-center">
+                                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs mr-2">
+                                    {selectedBorrowTokenDetails.TOKEN_SYMBOL.substring(0, 2)}
+                                  </div>
+                                  <span>{selectedBorrowTokenDetails.TOKEN_SYMBOL}</span>
+                                </div>
+                              ) : (
+                                <SelectValue placeholder="Pilih Token" />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SUPPORTED_TOKENS
+                                .filter(token => token.BORROW_TOKEN)
+                                .map(token => (
+                                  <SelectItem
+                                    key={token.CONTRACT_ADDRESS}
+                                    value={token.CONTRACT_ADDRESS}
+                                  >
+                                    <div className="flex items-center">
+                                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs mr-2">
                                         {token.TOKEN_SYMBOL.substring(0, 2)}
                                       </div>
+                                      <span>{token.TOKEN_SYMBOL}</span>
                                     </div>
-
-                                    {/* Token Details */}
-                                    <CardContent className="py-3 flex-1">
-                                      <div className="flex justify-between items-start">
-                                        <div>
-                                          <h3 className="font-semibold">{token.TOKEN_NAME}</h3>
-                                          <div className="text-sm text-muted-foreground">{token.TOKEN_SYMBOL}</div>
-                                        </div>
-
-                                        {isSelected && (
-                                          <div className="bg-primary/10 p-1 rounded-full">
-                                            <Check className="h-4 w-4 text-primary" />
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <div className="mt-2 space-y-1">
-                                        <div className="flex justify-between items-center text-sm">
-                                          <span className="text-muted-foreground">Saldo:</span>
-                                          <span className="font-medium">
-                                            {loadingBalances
-                                              ? '...'
-                                              : `${balance.toLocaleString('id-ID')} ${token.TOKEN_SYMBOL}`
-                                            }
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                          <span className="text-muted-foreground">LTV:</span>
-                                          <Badge variant={isSelected ? "default" : "outline"} className="text-xs">
-                                            {(token.LTV * 100).toFixed(0)}%
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </div>
-                                </Card>
-                              </div>
-                            );
-                          })
-                        }
-                      </div>
-                    </div>
-
-                    {/* Borrow Token Dropdown */}
-                    <div className="space-y-2">
-                      <Label htmlFor="borrowToken">Token Pinjaman</Label>
-                      <Select
-                        value={selectedBorrowToken}
-                        onValueChange={setSelectedBorrowToken}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih token pinjaman" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SUPPORTED_TOKENS
-                            .filter(token => token.BORROW_TOKEN)
-                            .map(token => (
-                              <SelectItem
-                                key={token.CONTRACT_ADDRESS}
-                                value={token.CONTRACT_ADDRESS}
+                                  </SelectItem>
+                                ))
+                              }
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedCollateralTokenDetails && (
+                          <div className="mt-2 flex justify-end items-center text-sm text-muted-foreground">
+                            <div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs font-medium"
+                                onClick={() => {
+                                  if (selectedCollateralToken && selectedCollateralTokenDetails) {
+                                    const balance = collateralBalances[selectedCollateralToken] || 0;
+                                    const ltv = selectedCollateralTokenDetails.LTV || 0;
+                                    const rate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+                                    // Calculate 50% of the max borrowable amount
+                                    const maxAmount = balance * ltv * rate;
+                                    const amount = maxAmount * 0.5;
+                                    setLoanAmount(new Intl.NumberFormat('id-ID').format(amount));
+                                  }
+                                }}
+                                disabled={!selectedCollateralToken || !selectedBorrowToken}
                               >
-                                {token.TOKEN_SYMBOL} - {token.TOKEN_NAME}
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Borrow Amount Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">
-                        Jumlah Pinjaman {selectedBorrowTokenDetails ? `(${selectedBorrowTokenDetails.TOKEN_SYMBOL})` : ''}
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="amount"
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="ex. 50.000.000"
-                          value={loanAmount}
-                          onChange={handleLoanAmountChange}
-                          className={isLoanAmountExceeded ? "border-red-500 focus-visible:ring-red-500 pr-12" : "pr-12"}
-                          disabled={!selectedCollateralToken || !selectedBorrowToken}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3"
-                          onClick={handleSetMaxLoan}
-                          disabled={!selectedCollateralToken || !selectedBorrowToken}
-                        >
-                          Max
-                        </Button>
+                                50%
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs font-medium"
+                                onClick={handleSetMaxLoan}
+                                disabled={!selectedCollateralToken || !selectedBorrowToken}
+                              >
+                                MAX
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                       {isLoanAmountExceeded && (
-                        <Alert variant="destructive" className="mt-2 text-xs">
+                        <Alert variant="destructive" className="mt-2">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>Jumlah pinjaman melebihi batas maksimal.</AlertDescription>
                         </Alert>
@@ -646,7 +579,9 @@ const ApplyLoan = () => {
                 {/* Loan Summary */}
                 <Card className="flex flex-col h-full">
                   <CardHeader>
-                    <CardTitle className="flex items-center"><Calculator className="w-5 h-5 mr-2" />Ringkasan Pinjaman</CardTitle><CardDescription className="py-1">Perhitungan berdasarkan input Anda.</CardDescription></CardHeader>
+                    <CardTitle className="flex items-center"><Calculator className="w-5 h-5 mr-2" />Ringkasan Pinjaman</CardTitle>
+                    <CardDescription className="py-1">Perhitungan berdasarkan input Anda.</CardDescription>
+                  </CardHeader>
                   <CardContent className="flex flex-col flex-1">
                     <div className="space-y-4 flex-1">
                       <div className="flex justify-between items-center">

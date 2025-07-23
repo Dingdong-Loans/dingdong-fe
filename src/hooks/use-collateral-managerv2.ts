@@ -339,6 +339,7 @@ export function useBatchGetDepositedCollateral(user: Address) {
 		functionName: "getDepositedCollateral",
 		args: [user, token.CONTRACT_ADDRESS],
 	}));
+	console.log(contracts);
 
 	const {
 		data,
@@ -347,6 +348,7 @@ export function useBatchGetDepositedCollateral(user: Address) {
 		refetch: internalRefetch,
 	} = useReadContracts({
 		contracts,
+		account: user,
 		query: {
 			refetchInterval: 1000,
 			refetchIntervalInBackground: true,
@@ -366,7 +368,7 @@ export function useBatchGetDepositedCollateral(user: Address) {
 	// transform data when data updates
 	useEffect(() => {
 		if (!data) return;
-
+		console.log("getdepositedcollateral", data);
 		const transformed = data.map((result, index) => ({
 			...collateralTokens[index],
 			depositedCollateral:
