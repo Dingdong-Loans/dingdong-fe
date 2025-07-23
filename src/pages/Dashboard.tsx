@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useWallet } from "@/hooks/use-wallet";
 import { useLendingCore, Loan } from "@/hooks/use-lending-core";
+import { useRepayLoan, useGetBatchUserLoan } from "@/hooks/use-lending-corev2";
 import { SUPPORTED_BORROW_TOKENS, SUPPORTED_COLLATERAL_TOKENS } from "@/lib/contract-utils";
 import { formatEther } from "viem";
 
@@ -54,9 +55,27 @@ const Dashboard = () => {
     getUtilizationBPS,
     getTotalSupply,
     isPaused,
-    // Write functions
-    repay,
   } = useLendingCore();
+
+  // Hooks from lending-corev2
+  const {
+    repayLoan,
+    isPending: isRepayPending,
+    isWaiting: isRepayWaiting,
+    isSuccess: isRepaySuccess,
+  } = useRepayLoan();
+
+  // New batch user loan hook
+  const {
+    loans: batchUserLoans,
+    isLoading: isBatchUserLoansLoading,
+    error: batchUserLoansError,
+    refetchUserLoans: refetchBatchUserLoans
+  } = useGetBatchUserLoan(
+    address as `0x${string}`,
+  );
+
+  useEffect(() => { console.log(batchUserLoans) }, [batchUserLoans])
 
   const { toast } = useToast();
 
@@ -79,6 +98,11 @@ const Dashboard = () => {
   const [borrowTokens, setBorrowTokens] = useState<string[]>([]);
   const [userLoans, setUserLoans] = useState<Array<Loan & { collateralTokenAddress?: string }>>([]);
   const [contractPaused, setContractPaused] = useState(false);
+  // New metrics based on user loans
+  const [totalBorrowingValue, setTotalBorrowingValue] = useState<string>('0');
+  const [totalLoanValue, setTotalLoanValue] = useState<string>('0');
+  const [totalInterestRate, setTotalInterestRate] = useState<string>('0');
+  // Legacy state for backward compatibility
   const [availableSupply, setAvailableSupply] = useState<string>('0');
   const [totalSupply, setTotalSupply] = useState<string>('0');
   const [utilizationBPS, setUtilizationBPS] = useState<string>('0');
@@ -119,10 +143,14 @@ const Dashboard = () => {
         getCurrentInterestRateBPS(token, currentDuration),
       ]);
 
+      // Store the original values in the legacy state variables for reference/backup
       setAvailableSupply(formatEther(supply as bigint));
       setTotalSupply(formatEther(total as bigint));
       setUtilizationBPS(((utilization as bigint) / 100n).toString());
       setInterestRateBPS(((interestRate as bigint) / 100n).toString());
+
+      // Note: We no longer use these values for UI display
+      // Instead, we calculate the new metrics in loadContractData from userLoans
     } catch (err) {
       console.error('Error loading token data:', err);
     } finally {
@@ -144,25 +172,74 @@ const Dashboard = () => {
       const paused = await isPaused() as boolean;
       setContractPaused(paused);
 
-      // Load user loans for all supported collateral tokens
+      // Refresh batch user loans data
+      await refetchBatchUserLoans();
+
+      // Initialize state to zero values in case we don't find any loans
+      setTotalBorrowingValue("0.00");
+      setTotalLoanValue("0.00");
+      setTotalInterestRate("0.00");
+
+      // Process the batch user loans data
       const loansWithCollateral: Array<Loan & { collateralTokenAddress: string }> = [];
-      for (const collateralToken of SUPPORTED_COLLATERAL_TOKENS) {
-        try {
-          const loan = await getUserLoan(
-            address as `0x${string}`,
-            collateralToken.CONTRACT_ADDRESS as `0x${string}`
-          ) as Loan;
-          if (loan.active) {
+      let totalBorrowing = 0;
+      let totalLoan = 0;
+      let totalInterest = 0;
+      let loanCount = 0;
+
+      // If we have batch user loans data, process it
+      if (batchUserLoans && batchUserLoans.length > 0) {
+        batchUserLoans.forEach((loanData) => {
+          if (loanData && loanData.active) {
+            // Add loan to array
             loansWithCollateral.push({
-              ...loan,
-              collateralTokenAddress: collateralToken.CONTRACT_ADDRESS
+              ...loanData,
+              collateralTokenAddress: loanData.borrowToken
             });
+
+            // Find borrow token info
+            const borrowToken = SUPPORTED_BORROW_TOKENS.find(
+              t => t.CONTRACT_ADDRESS.toLowerCase() === loanData.borrowToken.toLowerCase()
+            );
+
+            if (borrowToken) {
+              const divisor = BigInt(10 ** borrowToken.DECIMALS);
+
+              // Calculate values in USD equivalent
+              const principalValue = Number(loanData.principal) / Number(divisor);
+              const interestValue = Number(loanData.interestAccrued) / Number(divisor);
+              const repaidValue = Number(loanData.repaidAmount) / Number(divisor);
+              const outstandingPrincipal = principalValue - repaidValue;
+              totalBorrowing += outstandingPrincipal > 0 ? outstandingPrincipal : 0;
+
+              // Total loan value (principal plus interest minus repaid)
+              const outstandingTotal = principalValue + interestValue - repaidValue;
+              totalLoan += outstandingTotal > 0 ? outstandingTotal : 0;
+
+              // Calculate interest rate as a percentage of the principal
+              if (principalValue > 0) {
+                totalInterest += (interestValue / principalValue) * 100;
+                loanCount++;
+              }
+            }
           }
-        } catch (err) {
-          console.log(`No loan found for collateral ${collateralToken.TOKEN_SYMBOL}`);
+        });
+
+        // Set all the state values
+        setUserLoans(loansWithCollateral as Loan[]);
+        setTotalBorrowingValue(totalBorrowing.toFixed(2));
+        setTotalLoanValue(totalLoan.toFixed(2));
+
+        // Calculate average interest rate if there are loans
+        if (loanCount > 0) {
+          setTotalInterestRate((totalInterest / loanCount).toFixed(2));
+        } else {
+          setTotalInterestRate("0.00");
         }
+      } else {
+        // No loans found
+        setUserLoans([]);
       }
-      setUserLoans(loansWithCollateral as Loan[]);
 
       // Load token data for first borrow token
       if (tokens.length > 0) {
@@ -174,7 +251,7 @@ const Dashboard = () => {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [address, isConnected, getBorrowTokens, isPaused, getUserLoan, loadTokenData]);
+  }, [address, isConnected, getBorrowTokens, isPaused, refetchBatchUserLoans, batchUserLoans, loadTokenData]);
 
   // Helper functions for token handling
   const getBorrowTokenSymbol = (tokenAddress: string): string => {
@@ -246,64 +323,18 @@ const Dashboard = () => {
     }
   }, [isConnected, loadContractData]);
 
+  // Update state when batch user loans data changes
+  useEffect(() => {
+    if (isConnected && !isLoadingRef.current && batchUserLoans) {
+      loadContractData();
+    }
+  }, [batchUserLoans, isConnected, loadContractData]);
+
   // UI loading timer
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
-
-  // Convert real loans or use mock data
-  // const mockLoans: LoanData[] = [
-  //   // Mock data for demo
-  //   {
-  //     id: "Pinjaman Modal Kerja #001",
-  //     date: "14 Nov 2024",
-  //     collateral: "12 BTC",
-  //     tenor: "12 Bulan",
-  //     amount: "50.000.000",
-  //     size: "45.000.000",
-  //     status: "active" as const,
-  //     monthlyPayment: "4.500.000",
-  //     interestRate: "1.5%",
-  //     dueDate: "14 Desember 2024",
-  //   },
-  //   {
-  //     id: "LOAN-002",
-  //     date: "28 Okt 2024",
-  //     collateral: "8 ETH",
-  //     tenor: "24 Bulan",
-  //     amount: "30.000.000",
-  //     size: "18.000.000",
-  //     status: "active" as const,
-  //     monthlyPayment: "2.187.500",
-  //     interestRate: "9.0%",
-  //     dueDate: "28 November 2024",
-  //   },
-  //   {
-  //     id: "Pinjaman Ekspansi #003",
-  //     date: "15 Sep 2024",
-  //     collateral: "15 BTC",
-  //     tenor: "18 Bulan",
-  //     amount: "75.000.000",
-  //     size: "70.000.000",
-  //     status: "active" as const,
-  //     monthlyPayment: "6.875.000",
-  //     interestRate: "8.75%",
-  //     dueDate: "15 Oktober 2024",
-  //   },
-  //   {
-  //     id: "Pinjaman Darurat #004",
-  //     date: "01 Agu 2024",
-  //     collateral: "50 SOL",
-  //     tenor: "6 Bulan",
-  //     amount: "15.000.000",
-  //     size: "15.000.000",
-  //     status: "inactive" as const,
-  //     monthlyPayment: "N/A",
-  //     interestRate: "10.0%",
-  //     dueDate: "01 Februari 2025",
-  //   },
-  // ];
 
   const activeLoans: LoanData[] = isConnected && userLoans.length > 0
     ? convertContractLoansToUI(userLoans)
@@ -327,8 +358,6 @@ const Dashboard = () => {
   ];
 
   const totalCollateralValue = 135000000;
-  // --- PERUBAHAN: Menggunakan `replace(/\./g, '')` untuk menghapus titik sebagai pemisah ribuan ---
-  // Ini memastikan string seperti "45.000.000" diubah menjadi angka 45000000 dengan benar.
   const totalOutstandingLoans = activeLoans
     .filter((loan) => loan.status === "active")
     .reduce(
@@ -474,26 +503,31 @@ const Dashboard = () => {
           tokenSymbol: token.TOKEN_SYMBOL
         });
 
-        await repay(
-          collateralTokenAddress as `0x${string}`,
-          repayAmountBigInt
-        );
+        try {
+          await repayLoan({
+            collateralToken: collateralTokenAddress as `0x${string}`,
+            amount: repayAmountBigInt
+          });
 
-        // Refresh data after successful transaction
-        await loadContractData();
-
-        toast({
-          title: "Pembayaran Berhasil",
-          description: (
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span>
-                Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} {token.TOKEN_SYMBOL} berhasil.
-              </span>
-            </div>
-          ),
-          className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-        });
+          // Refresh data after successful transaction
+          await refetchBatchUserLoans();          // The success toast is now handled by useRepayLoan's useEffect
+          // but we can still show a custom message if needed
+          toast({
+            title: "Pembayaran Berhasil",
+            description: (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span>
+                  Pembayaran sebesar {paymentAmount.toLocaleString('id-ID')} {token.TOKEN_SYMBOL} berhasil.
+                </span>
+              </div>
+            ),
+            className: "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+          });
+        } catch (err) {
+          // Error handling is already managed in the hook's useEffect
+          console.error('Additional error details:', err);
+        }
 
       } catch (err) {
         console.error('Repayment failed:', err);
@@ -586,14 +620,14 @@ const Dashboard = () => {
                       onClick={() => {
                         if (!isLoadingRef.current) {
                           lastLoadedTokenRef.current = '';
-                          loadContractData();
+                          refetchBatchUserLoans();
                         }
                       }}
                       variant="outline"
                       size="sm"
-                      disabled={contractLoading || isLoadingRef.current}
+                      disabled={contractLoading || isLoadingRef.current || isBatchUserLoansLoading}
                     >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${contractLoading || isLoadingRef.current ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 mr-2 ${(contractLoading || isLoadingRef.current || isBatchUserLoansLoading) ? 'animate-spin' : ''}`} />
                       Refresh Data
                     </Button>
                   </div>
@@ -601,11 +635,11 @@ const Dashboard = () => {
               </div>
             )}
 
-            {error && (
+            {(error || batchUserLoansError) && (
               <Card className="border-red-200 bg-red-50 mb-6">
                 <CardHeader>
                   <CardTitle className="text-red-800">Contract Error</CardTitle>
-                  <p className="text-red-600">{error}</p>
+                  <p className="text-red-600">{error || String(batchUserLoansError)}</p>
                 </CardHeader>
               </Card>
             )}
@@ -621,18 +655,18 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Wallet className="h-4 w-4 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          {isConnected ? "Total Available Supply" : "Total Jaminan Aktif"}
+                          {isConnected ? "Total Borrowing Value" : "Total Jaminan Aktif"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
                           {isConnected
-                            ? `${parseFloat(availableSupply).toFixed(4)} ETH`
+                            ? `$${totalBorrowingValue}`
                             : `Rp ${totalCollateralValue.toLocaleString("id-ID")}`
                           }
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {isConnected ? "Available for borrowing" : "+5.2% dari bulan lalu"}
+                          {isConnected ? "Principal minus repayments" : "+5.2% dari bulan lalu"}
                         </p>
                       </CardContent>
                     </Card>
@@ -640,18 +674,18 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <Banknote className="h-5 w-5 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          {isConnected ? "Total Supply" : "Sisa Pinjaman Aktif"}
+                          {isConnected ? "Total Loan Value" : "Sisa Pinjaman Aktif"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
                           {isConnected
-                            ? `${parseFloat(totalSupply).toFixed(4)} ETH`
+                            ? `$${totalLoanValue}`
                             : `Rp ${totalOutstandingLoans.toLocaleString("id-ID")}`
                           }
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {isConnected ? "Total liquidity in protocol" : "dari semua pinjaman"}
+                          {isConnected ? "Principal plus interest" : "dari semua pinjaman"}
                         </p>
                       </CardContent>
                     </Card>
@@ -659,19 +693,19 @@ const Dashboard = () => {
                       <CardHeader className="flex flex-row items-center gap-1 space-y-0 pb-2">
                         <HandCoins className="h-5 w-5 text-muted-foreground" />
                         <CardTitle className="text-sm font-medium">
-                          {isConnected ? "Utilization Rate" : "Tersedia untuk Pinjam"}
+                          {isConnected ? "Total Interest Rate" : "Tersedia untuk Pinjam"}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
                           {isConnected
-                            ? `${utilizationBPS}%`
+                            ? `${totalInterestRate}%`
                             : "Rp 75.000.000"
                           }
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {isConnected
-                            ? `Interest Rate: ${interestRateBPS}%`
+                            ? `Across all active loans`
                             : "Berdasarkan jaminan saat ini"
                           }
                         </p>
@@ -692,7 +726,7 @@ const Dashboard = () => {
                           <Badge variant={contractPaused ? "destructive" : "default"}>
                             {contractPaused ? "Contract Paused" : "Contract Active"}
                           </Badge>
-                          {(contractLoading || isLoadingRef.current) && (
+                          {(contractLoading || isLoadingRef.current || isBatchUserLoansLoading) && (
                             <Badge variant="secondary">Loading...</Badge>
                           )}
                         </div>
@@ -1179,9 +1213,15 @@ const Dashboard = () => {
             <Button
               className="bg-primary text-white hover:bg-primary/90"
               onClick={handlePaymentSubmit}
-              disabled={contractLoading || (contractPaused && selectedLoan?.contractLoan !== undefined)}
+              disabled={isRepayPending || isRepayWaiting || contractLoading || (contractPaused && selectedLoan?.contractLoan !== undefined)}
             >
-              {contractLoading ? "Processing..." : "Konfirmasi Pembayaran"}
+              {isRepayPending
+                ? "Preparing..."
+                : isRepayWaiting
+                  ? "Processing..."
+                  : contractLoading
+                    ? "Loading..."
+                    : "Konfirmasi Pembayaran"}
             </Button>
           </DialogFooter>
         </DialogContent>

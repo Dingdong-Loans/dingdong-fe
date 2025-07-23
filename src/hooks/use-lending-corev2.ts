@@ -4,10 +4,11 @@ import {
 	useWaitForTransactionReceipt,
 	useAccount,
 	useReadContract,
+	useReadContracts,
 } from "wagmi";
 import { erc20Abi, BaseError, type Address } from "viem";
 import { LOAN_CONTRACT_ABI } from "@/abis/lending-core";
-import { CONTRACT_ADDRESSES } from "@/lib/contract-utils";
+import { CONTRACT_ADDRESSES, SUPPORTED_TOKENS } from "@/lib/contract-utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
@@ -154,11 +155,14 @@ export function useGetAvailableSupply(borrowToken: Address) {
 }
 
 export function useGetUserLoan(user: Address, collateralToken: Address) {
-	const { data, error, isLoading } = useReadContract({
+	const { data, error, isLoading, refetch } = useReadContract({
 		address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
 		abi: LOAN_CONTRACT_ABI,
 		functionName: "getUserLoan",
 		args: [user, collateralToken],
+		query: {
+			refetchInterval: 1000,
+		},
 	});
 
 	return {
@@ -176,6 +180,50 @@ export function useGetUserLoan(user: Address, collateralToken: Address) {
 			| undefined,
 		isLoading,
 		error: error as BaseError | null,
+		refetchUserLoan: refetch,
+	};
+}
+export function useGetBatchUserLoan(user: Address) {
+	const collateralTokens = SUPPORTED_TOKENS.filter(
+		(token) => token.COLLATERAL_TOKEN === true
+	);
+
+	const contracts = collateralTokens.map((token) => ({
+		address: CONTRACT_ADDRESSES.LOAN_CONTRACT,
+		abi: LOAN_CONTRACT_ABI,
+		functionName: "getUserLoan",
+		args: [user, token.CONTRACT_ADDRESS],
+	}));
+
+	const {
+		data,
+		isLoading,
+		error,
+		refetch
+	} = useReadContracts({
+		contracts,
+		account: user,
+		query: {
+			refetchInterval: 1000,
+			refetchIntervalInBackground: true,
+			retry: 3,
+		},
+	});
+
+	return {
+		loans: data?.map(result => result.status === "success" ? result.result as {
+			principal: bigint;
+			interestAccrued: bigint;
+			repaidAmount: bigint;
+			totalLiquidated: bigint;
+			borrowToken: Address;
+			startTime: number;
+			dueDate: number;
+			active: boolean;
+		} : undefined),
+		isLoading,
+		error: error as BaseError | null,
+		refetchUserLoans: refetch,
 	};
 }
 

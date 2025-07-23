@@ -28,15 +28,15 @@ const ApplyLoan = () => {
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const navigate = useNavigate();
   const { address } = useWallet();
-  
+
   // Use the borrowToken hook
-  const { 
-    borrow, 
-    isPending: isBorrowPending, 
+  const {
+    borrow,
+    isPending: isBorrowPending,
     isWaiting: isBorrowWaiting,
     isSuccess: isBorrowSuccess,
     isError: isBorrowError,
-    error: borrowError 
+    error: borrowError
   } = useBorrowToken();
 
   // State for collateral and borrow tokens
@@ -118,7 +118,7 @@ const ApplyLoan = () => {
 
   // Example collateral value (would come from the wallet or contract)
   // const totalCollateralValueIDR = 130000000;
-  
+
   // Listen for borrow success/failure
   useEffect(() => {
     if (isBorrowSuccess) {
@@ -302,20 +302,20 @@ const ApplyLoan = () => {
     if (isLoanAmountExceeded || !selectedCollateralToken || !selectedBorrowToken) return;
     setIsConfirmationOpen(true);
   };
-  
+
   const handleSubmit = async () => {
     if (isLoanAmountExceeded || !selectedCollateralToken || !selectedBorrowToken) return;
     setLoading(true);
-    
+
     try {
       // Parse amount as a number, then convert to bigint with proper decimals
       const numericalAmount = parseFloat(borrowAmount.replace(/,/g, ''));
       const decimalMultiplier = 10 ** (selectedBorrowTokenDetails?.DECIMALS || 18);
       const amountInSmallestUnit = BigInt(Math.floor(numericalAmount * decimalMultiplier));
-      
+
       // Convert duration from months to seconds
       const durationSeconds = BigInt(parseInt(duration) * 30 * 24 * 60 * 60);
-      
+
       // Call the borrow function from the hook
       await borrow({
         borrowToken: selectedBorrowToken as `0x${string}`,
@@ -323,7 +323,7 @@ const ApplyLoan = () => {
         amount: amountInSmallestUnit,
         duration: durationSeconds
       });
-      
+
       // We'll handle the success in useEffect
       setIsConfirmationOpen(false);
       setApplicationSubmitted(true);
@@ -440,7 +440,7 @@ const ApplyLoan = () => {
                 <Button variant="outline" onClick={() => setIsConfirmationOpen(false)}>
                   Batal
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSubmit}
                   disabled={loading || isBorrowPending || isBorrowWaiting}
                 >
@@ -451,7 +451,7 @@ const ApplyLoan = () => {
           </Card>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
         <div className="min-h-screen bg-background"><Navbar />
           <div className="container mx-auto px-4 py-8">
