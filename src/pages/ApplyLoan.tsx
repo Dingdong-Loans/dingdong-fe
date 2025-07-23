@@ -17,6 +17,7 @@ import { useLendingCore } from "@/hooks/use-lending-core";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCollateralManager } from "@/hooks/use-collateral-manager";
 import { useBatchGetDepositedCollateral } from "@/hooks/use-collateral-managerv2";
+import { useBorrowToken } from "@/hooks/use-lending-corev2";
 import { useAccount } from "wagmi";
 
 const ApplyLoan = () => {
@@ -27,6 +28,16 @@ const ApplyLoan = () => {
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const navigate = useNavigate();
   const { address } = useWallet();
+  
+  // Use the borrowToken hook
+  const { 
+    borrow, 
+    isPending: isBorrowPending, 
+    isWaiting: isBorrowWaiting,
+    isSuccess: isBorrowSuccess,
+    isError: isBorrowError,
+    error: borrowError 
+  } = useBorrowToken();
 
   // State for collateral and borrow tokens
   const [selectedCollateralToken, setSelectedCollateralToken] = useState("");
@@ -34,15 +45,23 @@ const ApplyLoan = () => {
   const [maxBorrowAmount, setMaxBorrowAmount] = useState(0);
 
   // Example price rates (would come from an oracle in production)
-  const TOKEN_TO_IDR_RATE = useMemo(() => ({
-    USDT: 15800,
-    USDC: 15800,
-    ETH: 16500 * 2000, // Assuming 1 ETH = 2000 USD
-    WBTC: 15800 * 30000, // Assuming 1 BTC = 30000 USD
+  const TOKEN_RATES = useMemo(() => ({
+    USDT: { IDRX: 16500, USDT: 1 },
+    wETH: { IDRX: 16500 * 3600, USDT: 3600 }, // Assuming 1 ETH = 2000 USD
+    wBTC: { IDRX: 16500 * 120000, USDT: 120000 }, // Assuming 1 BTC = 30000 USD
   }), []);
 
   // Use the batch hook to get collateral balances
   const { collaterals: collateralTokensWithBalances, isLoading: isLoadingBalances } = useBatchGetDepositedCollateral(address as `0x${string}`);
+
+  // Get the selected tokens
+  const selectedCollateralTokenDetails = SUPPORTED_TOKENS.find(
+    token => token.CONTRACT_ADDRESS === selectedCollateralToken
+  );
+
+  const selectedBorrowTokenDetails = SUPPORTED_TOKENS.find(
+    token => token.CONTRACT_ADDRESS === selectedBorrowToken
+  );
 
   // Compute collateral balances from the hook results
   const collateralBalances = useMemo(() => {
@@ -57,35 +76,21 @@ const ApplyLoan = () => {
   }, [collateralTokensWithBalances]);
 
   // Calculate total value in IDR for all collaterals
-  const totalCollateralValueIDR = useMemo(() => {
-    return collateralTokensWithBalances.reduce((total, token) => {
-      if (token.depositedCollateral !== undefined) {
-        const balance = Number(token.depositedCollateral) / (10 ** token.DECIMALS);
-        const rate = TOKEN_TO_IDR_RATE[token.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
-        total += balance * rate;
-      }
-      return total;
-    }, 0);
-  }, [collateralTokensWithBalances, TOKEN_TO_IDR_RATE]);
+  // const totalCollateralValueIDR = useMemo(() => {
+  //   return collateralTokensWithBalances.reduce((total, token) => {
+  //     if (token.depositedCollateral !== undefined) {
+  //       const balance = Number(token.depositedCollateral) / (10 ** token.DECIMALS);
+  //       const rate = TOKEN_TO_IDR_RATE[token.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+  //       total += balance * rate;
+  //     }
+  //     return total;
+  //   }, 0);
+  // }, [collateralTokensWithBalances, TOKEN_TO_IDR_RATE]);
 
   // Update the maxBorrowAmount calculation to use actual collateral value
   useEffect(() => {
     if (selectedCollateralToken && selectedBorrowToken && address) {
       console.log("reached set max amount");
-      // Create cache key from tokens
-      // const cacheKey = `${selectedCollateralToken}_${selectedBorrowToken}`;
-
-      // Check if we have a valid cached value
-      // const now = Date.now();
-      // if (
-      //   maxBorrowCache &&
-      //   maxBorrowCache.key === cacheKey &&
-      //   now - maxBorrowCache.timestamp < CACHE_DURATION
-      // ) {
-      //   console.log("Using cached max borrow amount");
-      //   setMaxBorrowAmount(maxBorrowCache.amount);
-      //   return;
-      // }
 
       const selectedCollateral = collateralTokensWithBalances.find(
         token => token.CONTRACT_ADDRESS === selectedCollateralToken
@@ -95,37 +100,35 @@ const ApplyLoan = () => {
         const balance = selectedCollateral.depositedCollateral
           ? Number(selectedCollateral.depositedCollateral) / (10 ** selectedCollateral.DECIMALS)
           : 0;
-
         // Calculate max borrow based on LTV and balance
         const ltv = selectedCollateral.LTV || 0;
-        const rate = TOKEN_TO_IDR_RATE[selectedCollateral.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
-        const maxLoanable = balance * ltv * rate;
-        setMaxBorrowAmount(maxLoanable);
-
-        // Cache the calculated value
-        // setMaxBorrowCache({
-        //   key: cacheKey,
-        //   amount: maxLoanable,
-        //   timestamp: now
-        // });
+        // const 
+        if (selectedBorrowTokenDetails) {
+          const rate = TOKEN_RATES[selectedCollateral.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
+          const maxLoanable = balance * ltv * rate;
+          setMaxBorrowAmount(maxLoanable);
+        }
       }
     }
-  }, [selectedCollateralToken, selectedBorrowToken, address, collateralTokensWithBalances, TOKEN_TO_IDR_RATE]);
+  }, [selectedCollateralToken, selectedBorrowToken, address, collateralTokensWithBalances, TOKEN_RATES, selectedBorrowTokenDetails]);
 
   const [currentTutorialStepIndex, setCurrentTutorialStepIndex] = useState(0);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
   // Example collateral value (would come from the wallet or contract)
   // const totalCollateralValueIDR = 130000000;
-
-  // Get the selected tokens
-  const selectedCollateralTokenDetails = SUPPORTED_TOKENS.find(
-    token => token.CONTRACT_ADDRESS === selectedCollateralToken
-  );
-
-  const selectedBorrowTokenDetails = SUPPORTED_TOKENS.find(
-    token => token.CONTRACT_ADDRESS === selectedBorrowToken
-  );
+  
+  // Listen for borrow success/failure
+  useEffect(() => {
+    if (isBorrowSuccess) {
+      setApplicationSubmitted(true);
+      setLoading(false);
+    } else if (isBorrowError) {
+      console.error("Borrow error:", borrowError);
+      setLoading(false);
+    }
+  }, [isBorrowSuccess, isBorrowError, borrowError]);
 
   // Convert loan amount to number for comparisons
   const numericLoanAmount = parseFloat(loanAmount.replace(/\./g, ''));
@@ -146,14 +149,37 @@ const ApplyLoan = () => {
 
     if (numericValue === '' || numericValue === '.') {
       setLoanAmount('');
+      setBorrowAmount('');
       return;
     }
 
+    // Set the collateral amount first
     setLoanAmount(numericValue);
+
+    // Calculate and update the borrow amount based on collateral value, token rates, and LTV
+    if (selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
+      const collateralAmount = parseFloat(numericValue);
+      const ltv = selectedCollateralTokenDetails.LTV || 0;
+      const rate = TOKEN_RATES[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
+
+      // Calculate what the borrow amount should be based on collateral and LTV
+      const calculatedBorrowAmount = collateralAmount * rate;
+
+      // Calculate the max allowed borrow based on LTV
+      const maxAllowedBorrow = collateralAmount * ltv * rate;
+
+      // Use the smaller of the calculated amount or max allowed by LTV
+      const finalBorrowAmount = Math.min(calculatedBorrowAmount, maxAllowedBorrow);
+
+      // Update the borrow amount
+      setBorrowAmount(finalBorrowAmount.toString());
+    }
   };
 
-  const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
+  const handleBorrowAmountChange = (value: React.ChangeEvent<HTMLInputElement> | number) => {
+    // Handle both event and direct number input
+    const rawValue = typeof value === 'number' ? value.toString() : value.target.value;
+
     // Allow digits and one decimal point
     const numericValue = rawValue.replace(/[^0-9.]/g, '');
 
@@ -161,37 +187,59 @@ const ApplyLoan = () => {
     const parts = numericValue.split('.');
     if (parts.length > 2) return;
 
-    // Limit decimal places to 2
-    // if (parts[1] && parts[1].length > 2) return;
-
     if (numericValue === '' || numericValue === '.') {
       setBorrowAmount('');
+      setLoanAmount('');
       return;
     }
 
+    // Set the borrow amount first
+    setBorrowAmount(numericValue);
+
     // Convert borrowAmount to collateral value based on token rates
     if (selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
-      const borrowRate = TOKEN_TO_IDR_RATE[selectedBorrowTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
-      const collateralRate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+      const borrowAmount = parseFloat(numericValue);
+      const ltv = selectedCollateralTokenDetails.LTV || 0;
+      const rate = TOKEN_RATES[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
 
-      // Convert borrow amount to IDR then to collateral token
-      const borrowAmountInIDR = parseFloat(numericValue) * borrowRate;
-      const collateralAmount = borrowAmountInIDR / collateralRate;
+      // Calculate the minimum collateral needed based on LTV
+      const minimumCollateral = borrowAmount / (ltv * rate);
+
+      // Calculate the direct conversion without LTV constraint
+      const directConversion = borrowAmount / rate;
+
+      // Use the larger of the two to ensure LTV compliance
+      const requiredCollateral = Math.max(minimumCollateral, directConversion);
+
+      // Check if user has enough balance
+      const availableBalance = collateralBalances[selectedCollateralToken] || 0;
+      const finalCollateralAmount = Math.min(requiredCollateral, availableBalance);
 
       // Set the collateral amount
-      setLoanAmount(collateralAmount.toString());
-    }
+      setLoanAmount(finalCollateralAmount.toString());
 
-    setBorrowAmount(numericValue);
+      // If the required collateral exceeds available balance, adjust borrow amount
+      if (requiredCollateral > availableBalance && availableBalance > 0) {
+        const maxPossibleBorrow = availableBalance * ltv * rate;
+        setBorrowAmount(maxPossibleBorrow.toString());
+      }
+    }
   };
 
   // Set max loan amount based on calculated max borrow
-  const handleSetMaxLoan = () => {
-    if (maxBorrowAmount > 0) {
-      // Format with thousands separator
-      const formattedValue = new Intl.NumberFormat('id-ID').format(maxBorrowAmount);
-      // Set loan amount to max value
-      setLoanAmount(formattedValue);
+  // const handleSetMaxLoan = () => {
+  //   if (maxBorrowAmount > 0) {
+  //     // Format with thousands separator
+  //     const formattedValue = new Intl.NumberFormat('id-ID').format(maxBorrowAmount);
+  //     // Set loan amount to max value
+  //     setLoanAmount(formattedValue);
+  //   }
+  // };
+
+  const handleSetMaxBorrow = () => {
+    if (maxBorrowAmount > 0 && selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
+      // Call the borrow amount change handler to update both values
+      handleBorrowAmountChange(maxBorrowAmount);
     }
   };
 
@@ -250,23 +298,40 @@ const ApplyLoan = () => {
     setCurrentTutorialStepIndex((prevIndex) => Math.max(prevIndex - 1, 0));
   };
 
-  const handleSubmit = () => {
+  const handleShowConfirmation = () => {
+    if (isLoanAmountExceeded || !selectedCollateralToken || !selectedBorrowToken) return;
+    setIsConfirmationOpen(true);
+  };
+  
+  const handleSubmit = async () => {
     if (isLoanAmountExceeded || !selectedCollateralToken || !selectedBorrowToken) return;
     setLoading(true);
-
-    // In a real implementation, we would call the contract here to create the loan
-    // Example:
-    // lendingCore.borrow(
-    //   selectedBorrowToken as `0x${string}`, 
-    //   selectedCollateralToken as `0x${string}`, 
-    //   parseFloat(loanAmount.replace(/\./g, '')),
-    //   BigInt(parseInt(duration) * 30 * 24 * 60 * 60) // Convert duration months to seconds
-    // );
-
-    setTimeout(() => {
+    
+    try {
+      // Parse amount as a number, then convert to bigint with proper decimals
+      const numericalAmount = parseFloat(borrowAmount.replace(/,/g, ''));
+      const decimalMultiplier = 10 ** (selectedBorrowTokenDetails?.DECIMALS || 18);
+      const amountInSmallestUnit = BigInt(Math.floor(numericalAmount * decimalMultiplier));
+      
+      // Convert duration from months to seconds
+      const durationSeconds = BigInt(parseInt(duration) * 30 * 24 * 60 * 60);
+      
+      // Call the borrow function from the hook
+      await borrow({
+        borrowToken: selectedBorrowToken as `0x${string}`,
+        collateralToken: selectedCollateralToken as `0x${string}`,
+        amount: amountInSmallestUnit,
+        duration: durationSeconds
+      });
+      
+      // We'll handle the success in useEffect
+      setIsConfirmationOpen(false);
       setApplicationSubmitted(true);
+    } catch (error) {
+      console.error("Error borrowing:", error);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const proceedToDashboard = () => navigate('/dashboard');
@@ -321,6 +386,72 @@ const ApplyLoan = () => {
 
   return (
     <>
+      <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pengajuan Pinjaman</DialogTitle>
+          </DialogHeader>
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Ringkasan Pinjaman Anda</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Token Jaminan:</span>
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs mr-2">
+                      {selectedCollateralTokenDetails?.TOKEN_SYMBOL.substring(0, 2)}
+                    </div>
+                    <span className="font-medium">{selectedCollateralTokenDetails?.TOKEN_SYMBOL}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Jumlah Jaminan:</span>
+                  <span className="font-medium">{parseFloat(loanAmount).toLocaleString('id-ID')} {selectedCollateralTokenDetails?.TOKEN_SYMBOL}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Token Pinjaman:</span>
+                  <span className="font-medium">{selectedBorrowTokenDetails?.TOKEN_SYMBOL}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Jumlah Pinjaman:</span>
+                  <span className="font-medium">{parseFloat(borrowAmount.replace(/,/g, '')).toLocaleString('id-ID')} {selectedBorrowTokenDetails?.TOKEN_SYMBOL}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Jangka Waktu:</span>
+                  <span className="font-medium">{duration} Bulan</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Suku Bunga:</span>
+                  <span className="font-medium">1.5% per tahun</span>
+                </div>
+                <div className="flex justify-between items-center text-lg">
+                  <span className="text-muted-foreground">Pembayaran Bulanan:</span>
+                  <span className="font-bold text-primary">
+                    {monthlyPayment > 0 ? `${monthlyPayment.toLocaleString('id-ID')} ${selectedBorrowTokenDetails?.TOKEN_SYMBOL}` : '-'}
+                  </span>
+                </div>
+              </div>
+              <Alert className="mt-4 bg-blue-50">
+                <AlertDescription className="text-sm">
+                  Dengan mengajukan pinjaman ini, Anda setuju bahwa jaminan Anda dapat dilikuidasi jika pinjaman tidak dibayar sesuai jadwal.
+                </AlertDescription>
+              </Alert>
+              <div className="flex justify-between mt-6">
+                <Button variant="outline" onClick={() => setIsConfirmationOpen(false)}>
+                  Batal
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={loading || isBorrowPending || isBorrowWaiting}
+                >
+                  {loading || isBorrowPending || isBorrowWaiting ? "Memproses..." : "Konfirmasi Pinjaman"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={isTutorialOpen} onOpenChange={setIsTutorialOpen}>
         <div className="min-h-screen bg-background"><Navbar />
           <div className="container mx-auto px-4 py-8">
@@ -419,14 +550,16 @@ const ApplyLoan = () => {
                                 size="sm"
                                 className="h-7 px-2 text-xs font-medium"
                                 onClick={() => {
-                                  if (selectedCollateralToken && selectedCollateralTokenDetails) {
-                                    const balance = collateralBalances[selectedCollateralToken] || 0;
+                                  if (selectedCollateralToken && selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
+                                    const collateralValue = collateralBalances[selectedCollateralToken] || 0;
+                                    const amount = collateralValue / 2;
+                                    setLoanAmount(amount.toString());
+
+                                    // Also update the borrow amount based on the collateral
                                     const ltv = selectedCollateralTokenDetails.LTV || 0;
-                                    const rate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
-                                    // Calculate 50% of the max borrowable amount
-                                    const maxAmount = balance * ltv * rate;
-                                    const amount = maxAmount * 0.5;
-                                    setLoanAmount(new Intl.NumberFormat('id-ID').format(amount));
+                                    const rate = TOKEN_RATES[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
+                                    const borrowAmount = amount * ltv * rate;
+                                    setBorrowAmount(borrowAmount.toString());
                                   }
                                 }}
                                 disabled={!selectedCollateralToken || !selectedBorrowToken}
@@ -438,7 +571,18 @@ const ApplyLoan = () => {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 px-2 text-xs font-medium"
-                                onClick={handleSetMaxLoan}
+                                onClick={() => {
+                                  const collateralValue = collateralBalances[selectedCollateralToken] || 0;
+                                  setLoanAmount(collateralValue.toString());
+
+                                  // Also update the borrow amount based on the collateral
+                                  if (selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
+                                    const ltv = selectedCollateralTokenDetails.LTV || 0;
+                                    const rate = TOKEN_RATES[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
+                                    const borrowAmount = collateralValue * ltv * rate;
+                                    setBorrowAmount(borrowAmount.toString());
+                                  }
+                                }}
                                 disabled={!selectedCollateralToken || !selectedBorrowToken}
                               >
                                 MAX
@@ -522,14 +666,15 @@ const ApplyLoan = () => {
                                 size="sm"
                                 className="h-7 px-2 text-xs font-medium"
                                 onClick={() => {
-                                  if (selectedCollateralToken && selectedCollateralTokenDetails) {
+                                  if (selectedCollateralToken && selectedCollateralTokenDetails && selectedBorrowTokenDetails) {
                                     const balance = collateralBalances[selectedCollateralToken] || 0;
                                     const ltv = selectedCollateralTokenDetails.LTV || 0;
-                                    const rate = TOKEN_TO_IDR_RATE[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_TO_IDR_RATE] || 15800;
+                                    const rate = TOKEN_RATES[selectedCollateralTokenDetails.TOKEN_SYMBOL as keyof typeof TOKEN_RATES][selectedBorrowTokenDetails.TOKEN_SYMBOL as 'IDRX' | 'USDT'];
                                     // Calculate 50% of the max borrowable amount
                                     const maxAmount = balance * ltv * rate;
                                     const amount = maxAmount * 0.5;
-                                    setLoanAmount(new Intl.NumberFormat('id-ID').format(amount));
+                                    setBorrowAmount(amount.toLocaleString('en-US'));
+                                    handleBorrowAmountChange(amount);
                                   }
                                 }}
                                 disabled={!selectedCollateralToken || !selectedBorrowToken}
@@ -541,7 +686,7 @@ const ApplyLoan = () => {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 px-2 text-xs font-medium"
-                                onClick={handleSetMaxLoan}
+                                onClick={handleSetMaxBorrow}
                                 disabled={!selectedCollateralToken || !selectedBorrowToken}
                               >
                                 MAX
@@ -627,7 +772,7 @@ const ApplyLoan = () => {
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">LTV Setelah Pinjaman</span>
                           <Badge variant="outline">
-                            {((numericLoanAmount / totalCollateralValueIDR) * 100).toFixed(2)}%
+                            {/* {((numericLoanAmount / totalCollateralValueIDR) * 100).toFixed(2)}% */}
                           </Badge>
                         </div>
                       )}
@@ -636,17 +781,19 @@ const ApplyLoan = () => {
                       <Button
                         className="w-full bg-primary text-white hover:to-green-600"
                         size="lg"
-                        onClick={handleSubmit}
+                        onClick={handleShowConfirmation}
                         disabled={
                           !loanAmount ||
                           !duration ||
                           loading ||
                           isLoanAmountExceeded ||
                           !selectedCollateralToken ||
-                          !selectedBorrowToken
+                          !selectedBorrowToken ||
+                          isBorrowPending ||
+                          isBorrowWaiting
                         }
                       >
-                        {loading ? "Memproses Aplikasi..." : "Ajukan Pinjaman"}
+                        {loading || isBorrowPending || isBorrowWaiting ? "Memproses Aplikasi..." : "Ajukan Pinjaman"}
                       </Button>
                     </div>
                   </CardContent>
